@@ -55,6 +55,13 @@ async function loadMyQuizzes() {
         const session = await checkSession();
         if (!session) return;
 
+        listContainer.innerHTML = `
+            <div class="loading-wrapper" style="grid-column: 1/-1;">
+                <div class="spinner"></div>
+                <p>Loading your quizzes...</p>
+            </div>
+        `;
+
         const { data: quizzes, error } = await supabaseClient
             .from('quizzes')
             .select('*')
@@ -68,13 +75,13 @@ async function loadMyQuizzes() {
             return;
         }
 
-        listContainer.innerHTML = quizzes.map(quiz => {
+        listContainer.innerHTML = quizzes.map((quiz, index) => {
             const shareLink = `${window.location.origin}/play.html?quiz=${quiz.id}`;
             const questionCount = quiz.questions_json ? quiz.questions_json.length : 0;
             const quizTitle = quiz.title || quiz.topic; // Fallback to topic if title is null
             
             return `
-                <div class="quiz-card">
+                <div class="quiz-card" style="animation-delay: ${index * 0.1}s">
                     <button class="btn-edit" onclick="openEditModal('${quiz.id}')">✏️ Edit</button>
                     <div class="quiz-card-header">
                         <div class="quiz-card-topic">${quizTitle}</div>
@@ -340,7 +347,12 @@ document.getElementById('generateBtn').onclick = async function() {
     generateBtn.disabled = true;
     generateBtn.innerText = "Generating Quiz...";
     resultsDiv.style.display = "block";
-    resultsDiv.innerHTML = `<p style="text-align:center;">AI is crafting your questions for <strong>${title}</strong> (Topic: ${topic})...<br><small>This may take a few retries if the server is busy.</small></p>`;
+    resultsDiv.innerHTML = `
+        <div class="loading-wrapper">
+            <div class="spinner"></div>
+            <p>AI is crafting your questions for <strong>${title}</strong>...<br><small>This may take a few retries if the server is busy.</small></p>
+        </div>
+    `;
 
     try {
         // 1. Prepare Prompt

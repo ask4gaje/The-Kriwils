@@ -104,9 +104,9 @@ function handleAnswer(selectedIndex, btn) {
 
     if (selectedIndex === correctIndex) {
         score++;
-        btn.classList.add('correct');
+        btn.classList.add('correct', 'animate-correct');
     } else {
-        btn.classList.add('wrong');
+        btn.classList.add('wrong', 'animate-wrong');
         allButtons[correctIndex].classList.add('correct');
     }
 
@@ -129,8 +129,15 @@ async function showResults() {
     let feedback = "";
     const percentage = (score / currentQuestions.length) * 100;
     
-    if (percentage === 100) feedback = "Perfect! You're a genius! 🏆";
-    else if (percentage >= 80) feedback = "Amazing job! 🌟";
+    if (percentage === 100) {
+        feedback = "Perfect! You're a genius! 🏆";
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#4f46e5', '#6366f1', '#10b981']
+        });
+    } else if (percentage >= 80) feedback = "Amazing job! 🌟";
     else if (percentage >= 60) feedback = "Good effort! 👍";
     else feedback = "Keep practicing! You'll get better. 💪";
     
