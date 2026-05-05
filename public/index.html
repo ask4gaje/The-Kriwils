@@ -15,6 +15,7 @@
         <a href="index.html" class="nav-brand">The Kriwils</a>
         <ul class="nav-links">
             <li><a href="index.html">Home</a></li>
+            <li><a href="quizzes.html">Quiz</a></li>
             <li><a href="about.html">About</a></li>
             <li><button onclick="logoutUser()" class="btn-logout">Logout</button></li>
         </ul>
@@ -70,41 +71,6 @@
                 <!-- Results will appear here -->
             </div>
         </section>
-
-        <section id="myQuizzesSection" class="my-quizzes">
-            <h2>Your Recent Quizzes</h2>
-            <div id="quizzesList" class="quizzes-grid">
-                <p style="text-align: center; color: var(--text-muted);">Loading your quizzes...</p>
-            </div>
-        </section>
-
-        <!-- Stats Modal -->
-        <div id="statsModal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 id="modalTitle">Quiz Statistics</h2>
-                    <span class="close-modal" onclick="closeStatsModal()">&times;</span>
-                </div>
-                <div id="statsContainer" class="stats-container">
-                    <p style="text-align: center;">Loading results...</p>
-                </div>
-            </div>
-        </div>
-        <!-- Edit Quiz Modal -->
-        <div id="editQuizModal" class="modal" style="display: none;">
-            <div class="modal-content" style="max-width: 800px;">
-                <div class="modal-header">
-                    <h2>Edit Quiz Content</h2>
-                    <span class="close-modal" onclick="closeEditModal()">&times;</span>
-                </div>
-                <div id="editFormContainer" style="margin-top: 1rem;">
-                    <!-- Dynamic form will be injected here -->
-                </div>
-                <div class="modal-footer" style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
-                    <button id="saveEditBtn" onclick="saveQuizEdits()" style="width: auto; padding: 0.75rem 2rem;">Save Changes</button>
-                </div>
-            </div>
-        </div>
     </main>
     <script src="js/auth.js"></script>
     <script src="js/script.js?v=1.2"></script>

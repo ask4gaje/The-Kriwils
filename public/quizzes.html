@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Kriwils - My Quizzes</title>
+    <link rel="stylesheet" href="css/style.css?v=1.2">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="nav-brand">The Kriwils</a>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="quizzes.html">Quiz</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><button onclick="logoutUser()" class="btn-logout">Logout</button></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="myQuizzesSection" class="my-quizzes">
+            <h2>Your Recent Quizzes</h2>
+            <div id="quizzesList" class="quizzes-grid">
+                <!-- Loading spinner will be injected here -->
+                <div class="loading-wrapper" style="grid-column: 1/-1;">
+                    <div class="spinner"></div>
+                    <p>Loading your quizzes...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Modal -->
+        <div id="statsModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle">Quiz Statistics</h2>
+                    <span class="close-modal" onclick="closeStatsModal()">&times;</span>
+                </div>
+                <div id="statsContainer" class="stats-container">
+                    <p style="text-align: center;">Loading results...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Quiz Modal -->
+        <div id="editQuizModal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h2>Edit Quiz Content</h2>
+                    <span class="close-modal" onclick="closeEditModal()">&times;</span>
+                </div>
+                <div id="editFormContainer" style="margin-top: 1rem;">
+                    <!-- Dynamic form will be injected here -->
+                </div>
+                <div class="modal-footer" style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                    <button id="saveEditBtn" onclick="saveQuizEdits()" style="width: auto; padding: 0.75rem 2rem;">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script src="js/quizzes.js?v=1.0"></script>
+</body>
+</html>

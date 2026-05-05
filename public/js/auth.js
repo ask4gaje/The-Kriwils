@@ -51,8 +51,9 @@ async function checkSession() {
     return session;
 }
 
-// Global protection for index.html (Dashboard)
-if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
+// Global protection for index.html (Dashboard) and quizzes.html
+const protectedPaths = ['index.html', 'quizzes.html', '/'];
+if (protectedPaths.some(path => window.location.pathname.endsWith(path) || (path === '/' && window.location.pathname === '/'))) {
     checkSession().then(session => {
         if (!session) {
             window.location.href = 'login.html';
