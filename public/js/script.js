@@ -69,15 +69,17 @@ async function loadMyQuizzes() {
         listContainer.innerHTML = quizzes.map(quiz => {
             const shareLink = `${window.location.origin}/play.html?quiz=${quiz.id}`;
             const questionCount = quiz.questions_json ? quiz.questions_json.length : 0;
+            const quizTitle = quiz.title || quiz.topic; // Fallback to topic if title is null
             
             return `
                 <div class="quiz-card">
                     <div class="quiz-card-header">
-                        <div class="quiz-card-topic">${quiz.topic}</div>
+                        <div class="quiz-card-topic">${quizTitle}</div>
+                        <div class="quiz-card-meta">Topic: ${quiz.topic}</div>
                         <div class="quiz-card-meta">${quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)} • ${questionCount} Questions</div>
                     </div>
                     <div class="quiz-card-actions">
-                        <button onclick="showStats('${quiz.id}', '${quiz.topic.replace(/'/g, "\\'")}')" class="btn btn-primary">Stats</button>
+                        <button onclick="showStats('${quiz.id}', '${quizTitle.replace(/'/g, "\\'")}')" class="btn btn-primary">Stats</button>
                         <button onclick="copySpecificLink('${shareLink}')" class="btn btn-secondary">Copy Link</button>
                     </div>
                 </div>
@@ -98,7 +100,7 @@ async function showStats(quizId, topic) {
     const container = document.getElementById('statsContainer');
     const title = document.getElementById('modalTitle');
 
-    title.innerText = `Stats: ${topic}`;
+    title.innerText = `Quiz Taker Statistics for Quiz ${topic}`;
     container.innerHTML = '<p style="text-align: center;">Loading results...</p>';
     modal.style.display = 'flex';
 
@@ -158,11 +160,17 @@ function copySpecificLink(link) {
 document.addEventListener('DOMContentLoaded', loadMyQuizzes);
 
 document.getElementById('generateBtn').onclick = async function() {
-    const topic = document.getElementById('quizTopic').value;
+    const title = document.getElementById('quizTitle').value.trim();
+    const topic = document.getElementById('quizTopic').value.trim();
     const difficulty = document.getElementById('quizDifficulty').value;
     const count = document.getElementById('quizCount').value;
     const resultsDiv = document.getElementById('quizResults');
     const generateBtn = document.getElementById('generateBtn');
+
+    if (!title) {
+        alert("Please enter a Quiz Title!");
+        return;
+    }
 
     if (!topic) {
         alert("Please enter a topic!");
@@ -173,7 +181,7 @@ document.getElementById('generateBtn').onclick = async function() {
     generateBtn.disabled = true;
     generateBtn.innerText = "Generating Quiz...";
     resultsDiv.style.display = "block";
-    resultsDiv.innerHTML = `<p style="text-align:center;">AI is crafting your questions for <strong>${topic}</strong> (${difficulty}, ${count} questions)...<br><small>This may take a few retries if the server is busy.</small></p>`;
+    resultsDiv.innerHTML = `<p style="text-align:center;">AI is crafting your questions for <strong>${title}</strong> (Topic: ${topic})...<br><small>This may take a few retries if the server is busy.</small></p>`;
 
     try {
         // 1. Prepare Prompt
@@ -212,6 +220,7 @@ document.getElementById('generateBtn').onclick = async function() {
             .from('quizzes')
             .insert({
                 creator_id: session.user.id,
+                title: title,
                 topic: topic,
                 difficulty: difficulty,
                 questions_json: questions
@@ -229,7 +238,7 @@ document.getElementById('generateBtn').onclick = async function() {
         resultsDiv.innerHTML = `
             <div style="background: #ecfdf5; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #10b981; margin-top: 2rem;">
                 <h3 style="color: #065f46; margin-bottom: 0.5rem;">✨ Quiz Generated Successfully!</h3>
-                <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1rem;">Your quiz about <strong>${topic}</strong> is ready. You can share the link below with anyone.</p>
+                <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1rem;">Your quiz <strong>${title}</strong> is ready. You can share the link below with anyone.</p>
                 <div style="display: flex; gap: 0.5rem;">
                     <input type="text" value="${shareLink}" readonly id="shareLinkInput" style="flex: 1; padding: 0.5rem; border: 1px solid #10b981; border-radius: 0.5rem;">
                     <button onclick="copyLink()" style="width: auto; padding: 0.5rem 1rem; background: #10b981;">Copy</button>
