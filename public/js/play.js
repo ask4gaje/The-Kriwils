@@ -25,6 +25,12 @@ async function loadQuiz() {
         if (!data) throw new Error("Quiz not found");
 
         currentQuestions = data.questions_json;
+        const titleDisplay = document.getElementById('quizTitleDisplay');
+        if (titleDisplay) {
+            titleDisplay.innerText = data.title || data.topic;
+            titleDisplay.style.display = 'block';
+        }
+
         document.getElementById('loading').style.display = 'none';
         document.getElementById('namePrompt').style.display = 'block';
     } catch (err) {

@@ -81,6 +81,7 @@ async function loadMyQuizzes() {
                     <div class="quiz-card-actions">
                         <button onclick="showStats('${quiz.id}', '${quizTitle.replace(/'/g, "\\'")}')" class="btn btn-primary">Stats</button>
                         <button onclick="copySpecificLink('${shareLink}')" class="btn btn-secondary">Copy Link</button>
+                        <button onclick="deleteQuiz('${quiz.id}')" class="btn btn-danger">Delete</button>
                     </div>
                 </div>
             `;
@@ -93,14 +94,38 @@ async function loadMyQuizzes() {
 }
 
 /**
- * Shows the statistics modal for a specific quiz.
+ * Deletes a quiz from Supabase after user confirmation.
+ */
+async function deleteQuiz(quizId) {
+    if (!confirm("Are you sure you want to delete this quiz? This will also remove all player results and cannot be undone.")) {
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('quizzes')
+            .delete()
+            .eq('id', quizId);
+
+        if (error) throw error;
+        
+        alert("Quiz deleted successfully.");
+        loadMyQuizzes(); // Refresh the list
+    } catch (err) {
+        console.error('Error deleting quiz:', err);
+        alert(`Failed to delete quiz: ${err.message}`);
+    }
+}
+
+/**
+ * Shows the Top 5 Leaderboard for a specific quiz.
  */
 async function showStats(quizId, topic) {
     const modal = document.getElementById('statsModal');
     const container = document.getElementById('statsContainer');
     const title = document.getElementById('modalTitle');
 
-    title.innerText = `Quiz Taker Statistics for Quiz ${topic}`;
+    title.innerText = `Top 5 Leaderboard: ${topic}`;
     container.innerHTML = '<p style="text-align: center;">Loading results...</p>';
     modal.style.display = 'flex';
 
@@ -109,7 +134,9 @@ async function showStats(quizId, topic) {
             .from('quiz_results')
             .select('*')
             .eq('quiz_id', quizId)
-            .order('created_at', { ascending: false });
+            .order('score', { ascending: false })
+            .order('created_at', { ascending: true })
+            .limit(5);
 
         if (error) throw error;
 
@@ -122,14 +149,16 @@ async function showStats(quizId, topic) {
             <table class="stats-table">
                 <thead>
                     <tr>
+                        <th>Rank</th>
                         <th>Player</th>
                         <th>Score</th>
                         <th>Date</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${results.map(res => `
+                    ${results.map((res, index) => `
                         <tr>
+                            <td><strong>#${index + 1}</strong></td>
                             <td><strong>${res.player_name}</strong></td>
                             <td>${res.score}/${res.total_questions}</td>
                             <td>${new Date(res.created_at).toLocaleDateString()}</td>
