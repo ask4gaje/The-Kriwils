@@ -118,50 +118,67 @@ async function deleteQuiz(quizId) {
 }
 
 /**
- * Shows the Top 5 Leaderboard for a specific quiz.
+ * Shows the Top 5 Leaderboard or all results for a specific quiz.
  */
-async function showStats(quizId, topic) {
+async function showStats(quizId, topic, viewAll = false) {
     const modal = document.getElementById('statsModal');
     const container = document.getElementById('statsContainer');
     const title = document.getElementById('modalTitle');
 
-    title.innerText = `Top 5 Leaderboard: ${topic}`;
+    title.innerText = viewAll ? `All Scores: ${topic}` : `Top 5 Leaderboard: ${topic}`;
     container.innerHTML = '<p style="text-align: center;">Loading results...</p>';
     modal.style.display = 'flex';
 
     try {
-        const { data: results, error } = await supabaseClient
+        let query = supabaseClient
             .from('quiz_results')
             .select('*')
-            .eq('quiz_id', quizId)
-            .order('score', { ascending: false })
-            .order('created_at', { ascending: true })
-            .limit(5);
+            .eq('quiz_id', quizId);
+        
+        if (viewAll) {
+            // All results newest first
+            query = query.order('created_at', { ascending: false });
+        } else {
+            // Top 5 by score
+            query = query.order('score', { ascending: false })
+                         .order('created_at', { ascending: true })
+                         .limit(5);
+        }
+
+        const { data: results, error } = await query;
 
         if (error) throw error;
 
+        const toggleBtnHtml = `
+            <button onclick="showStats('${quizId}', '${topic.replace(/'/g, "\\'")}', ${!viewAll})" class="btn-secondary" style="margin-bottom: 1.5rem; width: auto; font-size: 0.8125rem; padding: 0.5rem 1rem;">
+                ${viewAll ? '← Show Top 5 Leaderboard' : 'Show All Scores (By Time) →'}
+            </button>
+        `;
+
         if (!results || results.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">No one has played this quiz yet.</p>';
+            container.innerHTML = `
+                ${toggleBtnHtml}
+                <p style="text-align: center; color: var(--text-muted); padding: 2rem;">No one has played this quiz yet.</p>
+            `;
             return;
         }
 
         container.innerHTML = `
+            ${toggleBtnHtml}
             <table class="stats-table">
                 <thead>
                     <tr>
-                        <th>Rank</th>
+                        ${viewAll ? '<th>Time</th>' : '<th>Rank</th>'}
                         <th>Player</th>
                         <th>Score</th>
-                        <th>Date</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${results.map((res, index) => `
                         <tr>
-                            <td><strong>#${index + 1}</strong></td>
+                            <td>${viewAll ? new Date(res.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : `<strong>#${index + 1}</strong>`}</td>
                             <td><strong>${res.player_name}</strong></td>
                             <td>${res.score}/${res.total_questions}</td>
-                            <td>${new Date(res.created_at).toLocaleDateString()}</td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -218,8 +235,9 @@ document.getElementById('generateBtn').onclick = async function() {
         // 1. Prepare Prompt
         const prompt = `Generate a quiz about "${topic}" with ${difficulty} difficulty. 
         Return strictly a JSON array of ${count} objects. 
-        Each object must have: "question", "options" (array of 4 strings), "answer" (index of correct option 0-3), and "explanation" (a brief explanation of why the answer is correct).
-        Example: [{"question": "What is 1+1?", "options": ["1", "2", "3", "4"], "answer": 1, "explanation": "1 plus 1 equals 2."}]`;
+        All content (questions, options, explanations) MUST be in Indonesian language.
+        Each object must have: "question", "options" (array of 4 strings), and "answer" (index of correct option 0-3), and "explanation" (a brief explanation in Indonesian of why the answer is correct).
+        Example: [{"question": "Apa itu 1+1?", "options": ["1", "2", "3", "4"], "answer": 1, "explanation": "1 tambah 1 adalah 2."}]`;
 
         // 2. Call Gemini API with Retry
         const data = await askGeminiWithRetry(prompt);
