@@ -77,7 +77,7 @@ async function loadMyQuizzes() {
                         <div class="quiz-card-meta">${quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)} • ${questionCount} Questions</div>
                     </div>
                     <div class="quiz-card-actions">
-                        <a href="${shareLink}" target="_blank" class="btn btn-primary" style="text-decoration: none;">Play</a>
+                        <button onclick="showStats('${quiz.id}', '${quiz.topic.replace(/'/g, "\\'")}')" class="btn btn-primary">Stats</button>
                         <button onclick="copySpecificLink('${shareLink}')" class="btn btn-secondary">Copy Link</button>
                     </div>
                 </div>
@@ -88,6 +88,62 @@ async function loadMyQuizzes() {
         console.error('Error loading quizzes:', err);
         listContainer.innerHTML = '<p style="text-align: center; color: #dc2626; grid-column: 1/-1;">Failed to load your quizzes.</p>';
     }
+}
+
+/**
+ * Shows the statistics modal for a specific quiz.
+ */
+async function showStats(quizId, topic) {
+    const modal = document.getElementById('statsModal');
+    const container = document.getElementById('statsContainer');
+    const title = document.getElementById('modalTitle');
+
+    title.innerText = `Stats: ${topic}`;
+    container.innerHTML = '<p style="text-align: center;">Loading results...</p>';
+    modal.style.display = 'flex';
+
+    try {
+        const { data: results, error } = await supabaseClient
+            .from('quiz_results')
+            .select('*')
+            .eq('quiz_id', quizId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!results || results.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">No one has played this quiz yet.</p>';
+            return;
+        }
+
+        container.innerHTML = `
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Score</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${results.map(res => `
+                        <tr>
+                            <td><strong>${res.player_name}</strong></td>
+                            <td>${res.score}/${res.total_questions}</td>
+                            <td>${new Date(res.created_at).toLocaleDateString()}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    } catch (err) {
+        console.error('Error loading stats:', err);
+        container.innerHTML = '<p style="color: #dc2626; text-align: center;">Failed to load stats.</p>';
+    }
+}
+
+function closeStatsModal() {
+    document.getElementById('statsModal').style.display = 'none';
 }
 
 /**
