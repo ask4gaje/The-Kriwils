@@ -109,7 +109,25 @@ async function openEditModal(quizId) {
         currentEditQuestions = quiz.questions_json;
         saveBtn.disabled = false;
 
-        container.innerHTML = currentEditQuestions.map((q, qIndex) => `
+        let html = `
+            <div class="edit-q-block" style="background: #fdf2f2; border-color: #fecaca;">
+                <h4>General Settings</h4>
+                <div class="form-group">
+                    <label>Quiz Title</label>
+                    <input type="text" id="editQuizTitle" value="${(quiz.title || quiz.topic).replace(/"/g, '&quot;')}">
+                </div>
+                <div class="checkbox-group" style="margin-top: 1rem;">
+                    <label>
+                        <input type="checkbox" id="editIsReplayable" ${quiz.is_replayable ? 'checked' : ''}> Allow students to replay this quiz
+                    </label>
+                    <label>
+                        <input type="checkbox" id="editIsReviewable" ${quiz.is_reviewable ? 'checked' : ''}> Allow students to review answers
+                    </label>
+                </div>
+            </div>
+        `;
+
+        html += currentEditQuestions.map((q, qIndex) => `
             <div class="edit-q-block" data-index="${qIndex}">
                 <h4>Question ${qIndex + 1}</h4>
                 <div class="form-group">
@@ -137,6 +155,8 @@ async function openEditModal(quizId) {
             </div>
         `).join('');
 
+        container.innerHTML = html;
+
     } catch (err) {
         console.error('Error loading quiz for edit:', err);
         container.innerHTML = '<p style="color: #dc2626; text-align: center;">Failed to load quiz content.</p>';
@@ -148,8 +168,16 @@ async function openEditModal(quizId) {
  */
 async function saveQuizEdits() {
     const saveBtn = document.getElementById('saveEditBtn');
-    const blocks = document.querySelectorAll('.edit-q-block');
+    const blocks = document.querySelectorAll('.edit-q-block[data-index]'); // Only question blocks
+    const updatedTitle = document.getElementById('editQuizTitle').value.trim();
+    const updatedIsReplayable = document.getElementById('editIsReplayable').checked;
+    const updatedIsReviewable = document.getElementById('editIsReviewable').checked;
     const updatedQuestions = [];
+
+    if (!updatedTitle) {
+        alert("Quiz Title cannot be empty!");
+        return;
+    }
 
     saveBtn.disabled = true;
     saveBtn.innerText = "Saving...";
@@ -170,7 +198,12 @@ async function saveQuizEdits() {
 
         const { error } = await supabaseClient
             .from('quizzes')
-            .update({ questions_json: updatedQuestions })
+            .update({ 
+                title: updatedTitle,
+                is_replayable: updatedIsReplayable,
+                is_reviewable: updatedIsReviewable,
+                questions_json: updatedQuestions 
+            })
             .eq('id', currentEditQuizId);
 
         if (error) throw error;
