@@ -8,12 +8,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="login-container">
         <div class="login-card">
             <h2>Welcome Back</h2>
             <p>Please enter your details to sign in</p>
+            <div id="errorMsg" style="color: #dc2626; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" placeholder="Enter your username">
@@ -23,12 +25,24 @@
                 <input type="password" id="password" placeholder="••••••••">
             </div>
             <button id="doLogin">Sign In</button>
+            <p style="margin-top: 1.5rem; font-size: 0.875rem;">Don't have an account? <a href="register.html" style="color: var(--primary-color); text-decoration: none;">Sign Up</a></p>
         </div>
     </div>
 
+    <script src="js/auth.js"></script>
     <script>
-        document.getElementById('doLogin').onclick = function() {
-            window.location.href = 'index.html';
+        document.getElementById('doLogin').onclick = async function() {
+            const usn = document.getElementById('username').value;
+            const pwd = document.getElementById('password').value;
+            const errorDiv = document.getElementById('errorMsg');
+
+            const { data, error } = await loginUser(usn, pwd);
+            if (error) {
+                errorDiv.innerText = error.message;
+                errorDiv.style.display = "block";
+            } else {
+                window.location.href = 'index.html';
+            }
         };
     </script>
 </body>

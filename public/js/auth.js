@@ -1,0 +1,48 @@
+// Supabase Configuration
+const SUPABASE_URL = 'https://ynebeknksjncpuhznngp.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InluZWJla25rc2puY3B1aHpubmdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NTgzMDUsImV4cCI6MjA5MzUzNDMwNX0.OmwDA8fApYKnkH9mOmZBkl51qN9-XOTCHVa9UgMXM0s';
+
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Helper to convert username to internal email
+const getInternalEmail = (username) => `${username.toLowerCase()}@thekriwils.local`;
+
+async function registerUser(username, password) {
+    const email = getInternalEmail(username);
+    const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+            data: { username: username }
+        }
+    });
+    return { data, error };
+}
+
+async function loginUser(username, password) {
+    const email = getInternalEmail(username);
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+    });
+    return { data, error };
+}
+
+async function logoutUser() {
+    const { error } = await supabase.auth.signOut();
+    if (!error) window.location.href = 'login.html';
+}
+
+async function checkSession() {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session;
+}
+
+// Global protection for index.html (Dashboard)
+if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
+    checkSession().then(session => {
+        if (!session) {
+            window.location.href = 'login.html';
+        }
+    });
+}
