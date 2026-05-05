@@ -42,6 +42,65 @@ async function askGeminiWithRetry(prompt, retries = 3, delay = 2000) {
     }
 }
 
+/**
+ * Fetches the current user's quizzes from Supabase and renders them.
+ */
+async function loadMyQuizzes() {
+    const listContainer = document.getElementById('quizzesList');
+    if (!listContainer) return;
+
+    try {
+        const session = await checkSession();
+        if (!session) return;
+
+        const { data: quizzes, error } = await supabaseClient
+            .from('quizzes')
+            .select('*')
+            .eq('creator_id', session.user.id)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!quizzes || quizzes.length === 0) {
+            listContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted); grid-column: 1/-1;">You haven\'t generated any quizzes yet.</p>';
+            return;
+        }
+
+        listContainer.innerHTML = quizzes.map(quiz => {
+            const shareLink = `${window.location.origin}/play.html?quiz=${quiz.id}`;
+            const questionCount = quiz.questions_json ? quiz.questions_json.length : 0;
+            
+            return `
+                <div class="quiz-card">
+                    <div class="quiz-card-header">
+                        <div class="quiz-card-topic">${quiz.topic}</div>
+                        <div class="quiz-card-meta">${quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)} • ${questionCount} Questions</div>
+                    </div>
+                    <div class="quiz-card-actions">
+                        <a href="${shareLink}" target="_blank" class="btn btn-primary" style="text-decoration: none;">Play</a>
+                        <button onclick="copySpecificLink('${shareLink}')" class="btn btn-secondary">Copy Link</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error('Error loading quizzes:', err);
+        listContainer.innerHTML = '<p style="text-align: center; color: #dc2626; grid-column: 1/-1;">Failed to load your quizzes.</p>';
+    }
+}
+
+/**
+ * Helper to copy a specific link to clipboard.
+ */
+function copySpecificLink(link) {
+    navigator.clipboard.writeText(link);
+    alert("Link copied to clipboard!");
+}
+
+// Load quizzes on initial page load
+document.addEventListener('DOMContentLoaded', loadMyQuizzes);
+
 document.getElementById('generateBtn').onclick = async function() {
     const topic = document.getElementById('quizTopic').value;
     const difficulty = document.getElementById('quizDifficulty').value;
@@ -105,6 +164,9 @@ document.getElementById('generateBtn').onclick = async function() {
             .single();
 
         if (error) throw error;
+
+        // Refresh the list of quizzes
+        loadMyQuizzes();
 
         // 4. Display Success & Link
         const shareLink = `${window.location.origin}/play.html?quiz=${quizRecord.id}`;
