@@ -148,6 +148,32 @@ input, select {
     transition: border-color 0.2s, ring 0.2s;
 }
 
+/* Checkbox Group */
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+}
+
+.checkbox-group label {
+    display: flex !important;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-weight: 400 !important;
+    user-select: none;
+    font-size: 0.9375rem;
+    color: var(--text-main);
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
 input:focus, select:focus {
     outline: none;
     border-color: var(--primary-color);
@@ -353,4 +379,51 @@ nav button:hover {
     font-weight: 600;
     color: var(--text-muted);
     font-size: 0.875rem;
+}
+
+/* Review Styles */
+.review-item {
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.review-item:last-child {
+    border-bottom: none;
+}
+
+.review-q {
+    font-weight: 700;
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+    color: var(--text-main);
+}
+
+.review-answer-box {
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+.review-answer-box.correct {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.review-answer-box.wrong {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+.review-explanation {
+    background: #f9fafb;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    border-left: 4px solid var(--primary-color);
+    color: var(--text-muted);
+    line-height: 1.6;
 }

@@ -4,6 +4,8 @@ let score = 0;
 let isAnswered = false;
 let playerName = "";
 let currentQuizId = "";
+let userAnswers = []; // Tracks selected option index for each question
+let quizSettings = { is_replayable: true, is_reviewable: true };
 
 async function loadQuiz() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -24,7 +26,21 @@ async function loadQuiz() {
         if (error) throw error;
         if (!data) throw new Error("Quiz not found");
 
+        // Store settings and questions
+        quizSettings = { 
+            is_replayable: data.is_replayable ?? true, 
+            is_reviewable: data.is_reviewable ?? true 
+        };
         currentQuestions = data.questions_json;
+
+        // 1. Replay Check
+        if (quizSettings.is_replayable === false && localStorage.getItem('played_' + currentQuizId)) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('alreadyPlayed').style.display = 'block';
+            return;
+        }
+
+        // 2. Set Title
         const titleDisplay = document.getElementById('quizTitleDisplay');
         if (titleDisplay) {
             titleDisplay.innerText = data.title || data.topic;
@@ -80,6 +96,9 @@ function handleAnswer(selectedIndex, btn) {
     if (isAnswered) return;
     isAnswered = true;
 
+    // Track user answer
+    userAnswers[currentIndex] = selectedIndex;
+
     const correctIndex = currentQuestions[currentIndex].answer;
     const allButtons = document.querySelectorAll('.option-btn');
 
@@ -117,6 +136,19 @@ async function showResults() {
     
     document.getElementById('feedbackText').innerText = feedback;
 
+    // Show Review button if enabled
+    if (quizSettings.is_reviewable) {
+        document.getElementById('reviewBtn').style.display = 'block';
+    }
+
+    // Hide Replay button if disabled
+    if (quizSettings.is_replayable === false) {
+        document.getElementById('replayBtn').style.display = 'none';
+    }
+
+    // Save Replay status to local storage
+    localStorage.setItem('played_' + currentQuizId, 'true');
+
     // Save Score to Database
     try {
         const { error } = await supabaseClient
@@ -133,6 +165,39 @@ async function showResults() {
     } catch (err) {
         console.error("Error saving score:", err);
     }
+}
+
+function showReview() {
+    document.getElementById('resultsArea').style.display = 'none';
+    document.getElementById('reviewArea').style.display = 'block';
+    
+    const list = document.getElementById('reviewList');
+    list.innerHTML = currentQuestions.map((q, index) => {
+        const userAnsIndex = userAnswers[index];
+        const isCorrect = userAnsIndex === q.answer;
+        const userAnsText = q.options[userAnsIndex] || "Skipped";
+        const correctAnsText = q.options[q.answer];
+
+        return `
+            <div class="review-item">
+                <div class="review-q">${index + 1}. ${q.question}</div>
+                <div class="review-answer-box ${isCorrect ? 'correct' : 'wrong'}">
+                    <strong>Your Answer:</strong> ${userAnsText} 
+                    ${!isCorrect ? `<br><strong>Correct Answer:</strong> ${correctAnsText}` : ''}
+                </div>
+                <div class="review-explanation">
+                    <strong>Explanation:</strong> ${q.explanation || 'No explanation available.'}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function hideReview() {
+    document.getElementById('reviewArea').style.display = 'none';
+    document.getElementById('resultsArea').style.display = 'block';
 }
 
 // Start

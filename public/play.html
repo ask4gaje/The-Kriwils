@@ -101,6 +101,13 @@
 
         <h1 id="quizTitleDisplay" style="text-align: center; margin-bottom: 2rem; font-weight: 800; display: none;"></h1>
 
+        <!-- Already Played Message -->
+        <div id="alreadyPlayed" style="display: none;" class="quiz-container">
+            <h2 style="text-align: center; margin-bottom: 1rem;">Quiz Already Completed</h2>
+            <p style="text-align: center; margin-bottom: 2rem;">This quiz does not allow replays. You have already submitted your score for this session.</p>
+            <button onclick="window.location.href='index.html'">Back to Home</button>
+        </div>
+
         <!-- Pre-Quiz: Name Prompt -->
         <div id="namePrompt" style="display: none;" class="quiz-container">
             <h2 style="margin-bottom: 1rem;">Ready to Play?</h2>
@@ -129,10 +136,18 @@
             <p>You've finished the quiz. Here's how you did:</p>
             <div class="score-circle" id="finalScore">0/0</div>
             <p id="feedbackText" style="margin-bottom: 2rem; font-weight: 600;"></p>
-            <div style="display: flex; gap: 1rem;">
-                <button onclick="location.reload()">Try Again</button>
-                <button onclick="window.location.href='index.html'" style="background: white; color: var(--primary-color); border: 2px solid var(--primary-color);">Back to Home</button>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button id="replayBtn" onclick="location.reload()">Try Again</button>
+                <button id="reviewBtn" onclick="showReview()" style="display: none; background: #f5f3ff; color: var(--primary-color); border: 2px solid var(--primary-color); box-shadow: none;">Review Answers</button>
+                <button onclick="window.location.href='index.html'" style="background: white; color: var(--text-muted); border: 2px solid var(--border-color); box-shadow: none;">Back to Home</button>
             </div>
+        </div>
+
+        <!-- Review Area -->
+        <div id="reviewArea" style="display: none;" class="quiz-container">
+            <h1 style="text-align: center; margin-bottom: 2rem;">Review Answers</h1>
+            <div id="reviewList" style="display: flex; flex-direction: column; gap: 2rem;"></div>
+            <button onclick="hideReview()" style="margin-top: 3rem; background: white; color: var(--primary-color); border: 2px solid var(--primary-color); box-shadow: none;">Back to Results</button>
         </div>
     </main>
 

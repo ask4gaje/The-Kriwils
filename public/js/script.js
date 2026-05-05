@@ -193,6 +193,8 @@ document.getElementById('generateBtn').onclick = async function() {
     const topic = document.getElementById('quizTopic').value.trim();
     const difficulty = document.getElementById('quizDifficulty').value;
     const count = document.getElementById('quizCount').value;
+    const isReplayable = document.getElementById('isReplayable').checked;
+    const isReviewable = document.getElementById('isReviewable').checked;
     const resultsDiv = document.getElementById('quizResults');
     const generateBtn = document.getElementById('generateBtn');
 
@@ -216,8 +218,8 @@ document.getElementById('generateBtn').onclick = async function() {
         // 1. Prepare Prompt
         const prompt = `Generate a quiz about "${topic}" with ${difficulty} difficulty. 
         Return strictly a JSON array of ${count} objects. 
-        Each object must have: "question", "options" (array of 4 strings), and "answer" (index of correct option 0-3).
-        Example: [{"question": "What is 1+1?", "options": ["1", "2", "3", "4"], "answer": 1}]`;
+        Each object must have: "question", "options" (array of 4 strings), "answer" (index of correct option 0-3), and "explanation" (a brief explanation of why the answer is correct).
+        Example: [{"question": "What is 1+1?", "options": ["1", "2", "3", "4"], "answer": 1, "explanation": "1 plus 1 equals 2."}]`;
 
         // 2. Call Gemini API with Retry
         const data = await askGeminiWithRetry(prompt);
@@ -252,7 +254,9 @@ document.getElementById('generateBtn').onclick = async function() {
                 title: title,
                 topic: topic,
                 difficulty: difficulty,
-                questions_json: questions
+                questions_json: questions,
+                is_replayable: isReplayable,
+                is_reviewable: isReviewable
             })
             .select()
             .single();
