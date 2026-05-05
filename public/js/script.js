@@ -1,8 +1,51 @@
 const GEMINI_API_KEY = 'AIzaSyA_gKJFHKVwXggzUm_Dpp_4qqf8WoRLJ3I';
 
+/**
+ * Calls Gemini API with a retry mechanism and model fallback.
+ * Primary: gemini-flash-latest, Fallback: gemini-pro-latest
+ */
+async function askGeminiWithRetry(prompt, retries = 3, delay = 2000) {
+    const models = ['gemini-flash-latest', 'gemini-pro-latest'];
+    
+    for (const model of models) {
+        console.log(`Attempting generation with model: ${model}`);
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                const data = await response.json();
+
+                // Handle 503 Service Unavailable or "high demand" errors
+                if (response.status === 503 || (data.error && data.error.code === 503) || (data.error && data.error.message.includes("high demand"))) {
+                    console.warn(`Model ${model} is busy (Attempt ${i + 1}/${retries}). Retrying in ${delay}ms...`);
+                    await new Promise(res => setTimeout(res, delay));
+                    delay *= 2; // Exponential backoff
+                    continue;
+                }
+
+                if (!response.ok || data.error) {
+                    throw new Error(data.error ? data.error.message : `HTTP error! status: ${response.status}`);
+                }
+
+                return data;
+            } catch (err) {
+                // If it's the last retry of the last model, throw the error
+                if (i === retries - 1 && model === models[models.length - 1]) throw err;
+                console.error(`Attempt ${i + 1} for ${model} failed:`, err.message);
+            }
+        }
+        console.warn(`Model ${model} failed after ${retries} attempts. Trying fallback model...`);
+    }
+}
+
 document.getElementById('generateBtn').onclick = async function() {
     const topic = document.getElementById('quizTopic').value;
     const difficulty = document.getElementById('quizDifficulty').value;
+    const count = document.getElementById('quizCount').value;
     const resultsDiv = document.getElementById('quizResults');
     const generateBtn = document.getElementById('generateBtn');
 
@@ -15,31 +58,34 @@ document.getElementById('generateBtn').onclick = async function() {
     generateBtn.disabled = true;
     generateBtn.innerText = "Generating Quiz...";
     resultsDiv.style.display = "block";
-    resultsDiv.innerHTML = `<p style="text-align:center;">AI is crafting your questions for <strong>${topic}</strong> (${difficulty})...</p>`;
+    resultsDiv.innerHTML = `<p style="text-align:center;">AI is crafting your questions for <strong>${topic}</strong> (${difficulty}, ${count} questions)...<br><small>This may take a few retries if the server is busy.</small></p>`;
 
     try {
-        // 1. Call Gemini API
+        // 1. Prepare Prompt
         const prompt = `Generate a quiz about "${topic}" with ${difficulty} difficulty. 
-        Return strictly a JSON array of 5 objects. 
+        Return strictly a JSON array of ${count} objects. 
         Each object must have: "question", "options" (array of 4 strings), and "answer" (index of correct option 0-3).
         Example: [{"question": "What is 1+1?", "options": ["1", "2", "3", "4"], "answer": 1}]`;
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
-        });
+        // 2. Call Gemini API with Retry
+        const data = await askGeminiWithRetry(prompt);
 
-        const data = await response.json();
+        if (!data.candidates || data.candidates.length === 0) {
+            throw new Error("AI failed to generate a response. Please try a different topic.");
+        }
+
         let text = data.candidates[0].content.parts[0].text;
         
-        // Clean up markdown code blocks if AI included them
-        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-        const questions = JSON.parse(text);
+        // Robust JSON extraction (finds the first '[' and last ']')
+        const start = text.indexOf('[');
+        const end = text.lastIndexOf(']');
+        if (start === -1 || end === -1) {
+            throw new Error("AI returned an invalid data format. Please try again.");
+        }
 
-        // 2. Save to Supabase
+        const questions = JSON.parse(text.substring(start, end + 1));
+
+        // 3. Save to Supabase
         const session = await checkSession();
         if (!session) {
             alert("Session expired. Please log in again.");
@@ -60,23 +106,23 @@ document.getElementById('generateBtn').onclick = async function() {
 
         if (error) throw error;
 
-        // 3. Display Success & Link
+        // 4. Display Success & Link
         const shareLink = `${window.location.origin}/play.html?quiz=${quizRecord.id}`;
         resultsDiv.innerHTML = `
             <div style="background: #ecfdf5; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #10b981; margin-top: 2rem;">
                 <h3 style="color: #065f46; margin-bottom: 0.5rem;">✨ Quiz Generated Successfully!</h3>
-                <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1rem;">Your quiz about <strong>${topic}</strong> is ready. Only you can see the results, but anyone with the link below can play it.</p>
+                <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1rem;">Your quiz about <strong>${topic}</strong> is ready. You can share the link below with anyone.</p>
                 <div style="display: flex; gap: 0.5rem;">
                     <input type="text" value="${shareLink}" readonly id="shareLinkInput" style="flex: 1; padding: 0.5rem; border: 1px solid #10b981; border-radius: 0.5rem;">
                     <button onclick="copyLink()" style="width: auto; padding: 0.5rem 1rem; background: #10b981;">Copy</button>
                 </div>
-                <p style="margin-top: 1rem; font-size: 0.875rem;"><a href="${shareLink}" target="_blank" style="color: #047857; font-weight: 600;">Play it now →</a></p>
+                <p style="margin-top: 1rem; font-size: 0.875rem;"><a href="${shareLink}" target="_blank" style="color: #047857; font-weight: 600;">Play it now →</a> <br><small>(Note: Playback page will be implemented in the next phase)</small></p>
             </div>
         `;
 
     } catch (err) {
-        console.error('Generation Error:', err);
-        resultsDiv.innerHTML = `<p style="color: #dc2626; text-align:center;">Failed to generate quiz: ${err.message}. Please try again.</p>`;
+        console.error('Final Generation Error:', err);
+        resultsDiv.innerHTML = `<p style="color: #dc2626; text-align:center;">Failed after multiple retries: ${err.message}. Please wait a minute and try again.</p>`;
     } finally {
         generateBtn.disabled = false;
         generateBtn.innerText = "Generate Quiz";
@@ -86,7 +132,6 @@ document.getElementById('generateBtn').onclick = async function() {
 function copyLink() {
     const copyText = document.getElementById("shareLinkInput");
     copyText.select();
-    copyText.setSelectionRange(0, 99999);
     navigator.clipboard.writeText(copyText.value);
     alert("Link copied to clipboard!");
 }
