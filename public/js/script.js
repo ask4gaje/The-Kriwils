@@ -1,4 +1,6 @@
 const GEMINI_API_KEY = 'AIzaSyA_gKJFHKVwXggzUm_Dpp_4qqf8WoRLJ3I';
+let currentEditQuizId = "";
+let currentEditQuestions = [];
 
 /**
  * Calls Gemini API with a retry mechanism and model fallback.
@@ -73,6 +75,7 @@ async function loadMyQuizzes() {
             
             return `
                 <div class="quiz-card">
+                    <button class="btn-edit" onclick="openEditModal('${quiz.id}')">✏️ Edit</button>
                     <div class="quiz-card-header">
                         <div class="quiz-card-topic">${quizTitle}</div>
                         <div class="quiz-card-meta">Topic: ${quiz.topic}</div>
@@ -115,6 +118,114 @@ async function deleteQuiz(quizId) {
         console.error('Error deleting quiz:', err);
         alert(`Failed to delete quiz: ${err.message}`);
     }
+}
+
+/**
+ * Opens the Edit Modal and populates it with the current quiz questions.
+ */
+async function openEditModal(quizId) {
+    currentEditQuizId = quizId;
+    const modal = document.getElementById('editQuizModal');
+    const container = document.getElementById('editFormContainer');
+    const saveBtn = document.getElementById('saveEditBtn');
+
+    container.innerHTML = '<p style="text-align: center;">Loading quiz content...</p>';
+    saveBtn.disabled = true;
+    modal.style.display = 'flex';
+
+    try {
+        const { data: quiz, error } = await supabaseClient
+            .from('quizzes')
+            .select('*')
+            .eq('id', quizId)
+            .single();
+
+        if (error) throw error;
+
+        currentEditQuestions = quiz.questions_json;
+        saveBtn.disabled = false;
+
+        container.innerHTML = currentEditQuestions.map((q, qIndex) => `
+            <div class="edit-q-block" data-index="${qIndex}">
+                <h4>Question ${qIndex + 1}</h4>
+                <div class="form-group">
+                    <label>Question Text</label>
+                    <input type="text" class="edit-q-text" value="${q.question.replace(/"/g, '&quot;')}">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    ${q.options.map((opt, oIndex) => `
+                        <div class="form-group">
+                            <label>Option ${oIndex + 1}</label>
+                            <input type="text" class="edit-opt" data-opt-index="${oIndex}" value="${opt.replace(/"/g, '&quot;')}">
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="form-group">
+                    <label>Correct Answer</label>
+                    <select class="edit-answer">
+                        ${[0, 1, 2, 3].map(val => `<option value="${val}" ${q.answer == val ? 'selected' : ''}>Option ${val + 1}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Explanation</label>
+                    <textarea class="edit-explanation" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; height: 80px;">${q.explanation || ''}</textarea>
+                </div>
+            </div>
+        `).join('');
+
+    } catch (err) {
+        console.error('Error loading quiz for edit:', err);
+        container.innerHTML = '<p style="color: #dc2626; text-align: center;">Failed to load quiz content.</p>';
+    }
+}
+
+/**
+ * Gathers the edited data and saves it back to Supabase.
+ */
+async function saveQuizEdits() {
+    const saveBtn = document.getElementById('saveEditBtn');
+    const blocks = document.querySelectorAll('.edit-q-block');
+    const updatedQuestions = [];
+
+    saveBtn.disabled = true;
+    saveBtn.innerText = "Saving...";
+
+    try {
+        blocks.forEach(block => {
+            const question = block.querySelector('.edit-q-text').value.trim();
+            const explanation = block.querySelector('.edit-explanation').value.trim();
+            const answer = parseInt(block.querySelector('.edit-answer').value);
+            const options = Array.from(block.querySelectorAll('.edit-opt')).map(input => input.value.trim());
+
+            if (!question || options.some(o => !o)) {
+                throw new Error("All questions and options must be filled out!");
+            }
+
+            updatedQuestions.push({ question, options, answer, explanation });
+        });
+
+        const { error } = await supabaseClient
+            .from('quizzes')
+            .update({ questions_json: updatedQuestions })
+            .eq('id', currentEditQuizId);
+
+        if (error) throw error;
+
+        alert("Quiz updated successfully!");
+        closeEditModal();
+        loadMyQuizzes(); // Refresh cards
+
+    } catch (err) {
+        console.error('Error saving edits:', err);
+        alert(`Failed to save: ${err.message}`);
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerText = "Save Changes";
+    }
+}
+
+function closeEditModal() {
+    document.getElementById('editQuizModal').style.display = 'none';
 }
 
 /**

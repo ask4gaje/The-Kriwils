@@ -259,6 +259,43 @@ nav button:hover {
     border-radius: 1rem;
     border: 1px solid var(--border-color);
     transition: all 0.2s;
+    position: relative;
+}
+
+.btn-edit {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: auto !important;
+    padding: 0.35rem 0.75rem !important;
+    font-size: 0.75rem !important;
+    background: #f3f4f6 !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: none !important;
+    gap: 0.25rem !important;
+}
+
+.btn-edit:hover {
+    background: #e5e7eb !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Edit Modal Form Styles */
+.edit-q-block {
+    background: #f9fafb;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+}
+
+.edit-q-block h4 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .quiz-card:hover {

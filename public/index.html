@@ -56,10 +56,10 @@
 
                 <div class="checkbox-group">
                     <label>
-                        <input type="checkbox" id="isReplayable"> Allow players to replay this quiz
+                        <input type="checkbox" id="isReplayable"> Allow students to replay this quiz
                     </label>
                     <label>
-                        <input type="checkbox" id="isReviewable" checked> Allow players to review answers and explanations
+                        <input type="checkbox" id="isReviewable" checked> Allow students to review answers and explanations
                     </label>
                 </div>
                 
@@ -87,6 +87,21 @@
                 </div>
                 <div id="statsContainer" class="stats-container">
                     <p style="text-align: center;">Loading results...</p>
+                </div>
+            </div>
+        </div>
+        <!-- Edit Quiz Modal -->
+        <div id="editQuizModal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h2>Edit Quiz Content</h2>
+                    <span class="close-modal" onclick="closeEditModal()">&times;</span>
+                </div>
+                <div id="editFormContainer" style="margin-top: 1rem;">
+                    <!-- Dynamic form will be injected here -->
+                </div>
+                <div class="modal-footer" style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                    <button id="saveEditBtn" onclick="saveQuizEdits()" style="width: auto; padding: 0.75rem 2rem;">Save Changes</button>
                 </div>
             </div>
         </div>
