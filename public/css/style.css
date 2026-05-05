@@ -26,18 +26,27 @@ body {
 nav {
     background-color: var(--nav-bg);
     border-bottom: 1px solid var(--border-color);
-    padding: 1rem 2rem;
+    padding: 0.75rem 2rem;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
     position: sticky;
     top: 0;
     z-index: 100;
 }
 
-nav ul {
+.nav-brand {
+    font-weight: 800;
+    font-size: 1.25rem;
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.nav-links {
     list-style: none;
     display: flex;
     gap: 2rem;
+    align-items: center;
 }
 
 nav a {
@@ -49,6 +58,22 @@ nav a {
 
 nav a:hover {
     color: var(--primary-color);
+}
+
+.btn-logout {
+    width: auto;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    box-shadow: none;
+}
+
+.btn-logout:hover {
+    background: #ef4444;
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.2);
 }
 
 /* Content */

@@ -32,6 +32,7 @@
     <script src="js/auth.js"></script>
     <script>
         document.getElementById('doRegister').onclick = async function() {
+            console.log('Sign Up button clicked');
             const usn = document.getElementById('regUsername').value;
             const pwd = document.getElementById('regPassword').value;
             const errorDiv = document.getElementById('errorMsg');
@@ -42,13 +43,21 @@
                 return;
             }
 
-            const { data, error } = await registerUser(usn, pwd);
-            if (error) {
-                errorDiv.innerText = error.message;
+            try {
+                const { data, error } = await registerUser(usn, pwd);
+                if (error) {
+                    console.error('Supabase error:', error);
+                    errorDiv.innerText = error.message;
+                    errorDiv.style.display = "block";
+                } else {
+                    console.log('User registered:', data);
+                    alert("Registration successful! You can now log in.");
+                    window.location.href = 'login.html';
+                }
+            } catch (err) {
+                console.error('Client-side error:', err);
+                errorDiv.innerText = "An unexpected error occurred. Check the console.";
                 errorDiv.style.display = "block";
-            } else {
-                alert("Registration successful! You can now log in.");
-                window.location.href = 'login.html';
             }
         };
     </script>
