@@ -13,3 +13,7 @@ yarn-error.log*
 .idea/
 *.swp
 *.swo
+
+# Project Private Docs
+DEPLOYMENT.md
+GEMINI.md
