@@ -9,23 +9,33 @@ let quizSettings = { is_replayable: true, is_reviewable: true };
 
 async function loadQuiz() {
     const urlParams = new URLSearchParams(window.location.search);
+    const pathParts = window.location.pathname.split('/');
+    const shortCode = pathParts[pathParts.indexOf('play') + 1];
+    
     currentQuizId = urlParams.get('quiz');
 
-    if (!currentQuizId) {
-        document.getElementById('loading').innerHTML = '<p style="color: #dc2626;">No quiz ID provided!</p>';
+    if (!currentQuizId && !shortCode) {
+        document.getElementById('loading').innerHTML = '<p style="color: #dc2626;">No quiz ID or code provided!</p>';
         return;
     }
 
     try {
-        const { data, error } = await supabaseClient
-            .from('quizzes')
-            .select('*')
-            .eq('id', currentQuizId)
-            .single();
+        let query = supabaseClient.from('quizzes').select('*');
+        
+        if (shortCode) {
+            query = query.eq('short_code', shortCode);
+        } else {
+            query = query.eq('id', currentQuizId);
+        }
+
+        const { data, error } = await query.single();
 
         if (error) throw error;
         if (!data) throw new Error("Quiz not found");
 
+        // Important: Store the full ID for database operations
+        currentQuizId = data.id; 
+        
         // Store settings and questions
         quizSettings = { 
             is_replayable: data.is_replayable ?? true, 

@@ -17,7 +17,14 @@ const MIME_TYPES = {
 };
 
 http.createServer((req, res) => {
-    let filePath = path.join(PUBLIC_DIR, req.url.split('?')[0] === '/' ? 'login.html' : req.url.split('?')[0]);
+    let urlPath = req.url.split('?')[0];
+    
+    // Pretty URL handling for Quiz Player
+    if (urlPath.startsWith('/play/')) {
+        urlPath = '/play.html';
+    }
+
+    let filePath = path.join(PUBLIC_DIR, urlPath === '/' ? 'login.html' : urlPath);
     const extname = path.extname(filePath);
     let contentType = MIME_TYPES[extname] || 'application/octet-stream';
 

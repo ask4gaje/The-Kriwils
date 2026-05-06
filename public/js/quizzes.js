@@ -33,7 +33,10 @@ async function loadMyQuizzes() {
         }
 
         listContainer.innerHTML = quizzes.map((quiz, index) => {
-            const shareLink = `${window.location.origin}/play.html?quiz=${quiz.id}`;
+            const shareLink = quiz.short_code 
+                ? `${window.location.origin}/play/${quiz.short_code}`
+                : `${window.location.origin}/play.html?quiz=${quiz.id}`;
+            
             const questionCount = quiz.questions_json ? quiz.questions_json.length : 0;
             const quizTitle = quiz.title || quiz.topic; // Fallback to topic if title is null
             

@@ -42,6 +42,13 @@ async function askGeminiWithRetry(prompt, retries = 3, delay = 2000) {
     }
 }
 
+/**
+ * Generates a random 6-character short code for Pretty URLs.
+ */
+function generateShortCode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
 document.getElementById('generateBtn').onclick = async function() {
     const title = document.getElementById('quizTitle').value.trim();
     const topic = document.getElementById('quizTopic').value.trim();
@@ -116,7 +123,8 @@ document.getElementById('generateBtn').onclick = async function() {
                 difficulty: difficulty,
                 questions_json: questions,
                 is_replayable: isReplayable,
-                is_reviewable: isReviewable
+                is_reviewable: isReviewable,
+                short_code: generateShortCode()
             })
             .select()
             .single();
@@ -124,7 +132,7 @@ document.getElementById('generateBtn').onclick = async function() {
         if (error) throw error;
 
         // 4. Display Success & Link
-        const shareLink = `${window.location.origin}/play.html?quiz=${quizRecord.id}`;
+        const shareLink = `${window.location.origin}/play/${quizRecord.short_code}`;
         resultsDiv.innerHTML = `
             <div style="background: #ecfdf5; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #10b981; margin-top: 2rem;">
                 <h3 style="color: #065f46; margin-bottom: 0.5rem;">✨ Quiz Generated Successfully!</h3>
