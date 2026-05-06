@@ -1,6 +1,32 @@
 const GEMINI_API_KEY = 'AIzaSyA_gKJFHKVwXggzUm_Dpp_4qqf8WoRLJ3I';
 const MAX_TOPIC_LENGTH = 150;
 
+// PDF.js worker setup
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+}
+
+/**
+ * Extracts text from a PDF file using PDF.js (Max 50 pages)
+ */
+async function extractTextFromPDF(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = "";
+
+    const pagesToRead = Math.min(pdf.numPages, 50);
+    console.log(`Reading ${pagesToRead} pages from PDF...`);
+
+    for (let i = 1; i <= pagesToRead; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const strings = content.items.map(item => item.str);
+        fullText += strings.join(" ") + "\n";
+    }
+
+    return fullText;
+}
+
 // Enforce topic length limit on load
 document.addEventListener('DOMContentLoaded', () => {
     const topicInput = document.getElementById('quizTopic');
@@ -63,6 +89,7 @@ document.getElementById('generateBtn').onclick = async function() {
     const count = document.getElementById('quizCount').value;
     const isReplayable = document.getElementById('isReplayable').checked;
     const isReviewable = document.getElementById('isReviewable').checked;
+    const pdfFile = document.getElementById('pdfUpload').files[0];
     const resultsDiv = document.getElementById('quizResults');
     const generateBtn = document.getElementById('generateBtn');
 
@@ -71,8 +98,8 @@ document.getElementById('generateBtn').onclick = async function() {
         return;
     }
 
-    if (!topic) {
-        alert("Please enter a topic!");
+    if (!topic && !pdfFile) {
+        alert("Please enter a topic or upload a PDF!");
         return;
     }
 
@@ -83,17 +110,36 @@ document.getElementById('generateBtn').onclick = async function() {
     resultsDiv.innerHTML = `
         <div class="loading-wrapper">
             <div class="spinner"></div>
-            <p>AI is crafting your questions for <strong>${title}</strong>...<br><small>This may take a few retries if the server is busy.</small></p>
+            <p id="loadingStatus">AI is crafting your questions for <strong>${title}</strong>...</p>
+            <small>This may take a minute if using a PDF.</small>
         </div>
     `;
 
     try {
+        let pdfContext = "";
+        if (pdfFile) {
+            document.getElementById('loadingStatus').innerText = "Reading your PDF file...";
+            pdfContext = await extractTextFromPDF(pdfFile);
+            document.getElementById('loadingStatus').innerHTML = `AI is reading <strong>${pdfFile.name}</strong>...`;
+        }
+
         // 1. Prepare Prompt
-        const prompt = `Generate a quiz about "${topic}" with ${difficulty} difficulty. 
+        let prompt = `Generate a quiz about "${topic}" with ${difficulty} difficulty. 
         Return strictly a JSON array of ${count} objects. 
         All content (questions, options, explanations) MUST be in Indonesian language.
         Each object must have: "question", "options" (array of 4 strings), and "answer" (index of correct option 0-3), and "explanation" (a brief explanation in Indonesian of why the answer is correct).
         Example: [{"question": "Apa itu 1+1?", "options": ["1", "2", "3", "4"], "answer": 1, "explanation": "1 tambah 1 adalah 2."}]`;
+
+        if (pdfContext) {
+            prompt = `Berikut adalah materi referensi (PDF Content):
+            ---
+            ${pdfContext.substring(0, 15000)} 
+            ---
+            Berdasarkan materi referensi di atas, buatlah kuis tentang "${topic || 'materi tersebut'}" dengan tingkat kesulitan ${difficulty}. 
+            Kembalikan kuis dalam format JSON array yang terdiri dari ${count} objek.
+            PENTING: Seluruh pertanyaan, pilihan jawaban, dan penjelasan HARUS dalam Bahasa Indonesia.
+            Format objek: {"question": "...", "options": ["...", "...", "...", "..."], "answer": index, "explanation": "..."}`;
+        }
 
         // 2. Call Gemini API with Retry
         const data = await askGeminiWithRetry(prompt);

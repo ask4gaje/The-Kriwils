@@ -138,7 +138,7 @@ p {
     margin-bottom: 0.5rem;
 }
 
-input, select {
+input, select, input[type="file"] {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid var(--border-color);
@@ -146,6 +146,11 @@ input, select {
     font-size: 1rem;
     background-color: white;
     transition: border-color 0.2s, ring 0.2s;
+}
+
+input[type="file"] {
+    background-color: #f9fafb;
+    cursor: pointer;
 }
 
 /* Checkbox Group */
