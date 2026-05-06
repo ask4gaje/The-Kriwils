@@ -93,6 +93,11 @@ document.getElementById('generateBtn').onclick = async function() {
     const resultsDiv = document.getElementById('quizResults');
     const generateBtn = document.getElementById('generateBtn');
 
+    if (pdfFile && typeof pdfjsLib === 'undefined') {
+        alert("PDF library is still loading or failed to load. Please refresh and try again.");
+        return;
+    }
+
     if (!title) {
         alert("Please enter a Quiz Title!");
         return;
