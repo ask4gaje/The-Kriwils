@@ -35,10 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /**
  * Calls Gemini API with a retry mechanism and model fallback.
- * Primary: gemini-flash-latest, Fallback: gemini-pro-latest
+ * Primary: gemini-2.0-flash, Fallback: gemini-flash-latest
  */
 async function askGeminiWithRetry(prompt, retries = 3, delay = 2000) {
-    const models = ['gemini-flash-latest', 'gemini-pro-latest'];
+    const models = ['gemini-2.0-flash', 'gemini-flash-latest']; // Use correct identifiers from ListModels
     
     for (const model of models) {
         console.log(`Attempting generation with model: ${model}`);
