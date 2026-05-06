@@ -60,3 +60,55 @@ if (protectedPaths.some(path => window.location.pathname.endsWith(path) || (path
         }
     });
 }
+
+/**
+ * Custom Toast Notification System
+ * @param {string} message 
+ * @param {'success' | 'error' | 'info'} type 
+ */
+function showToast(message, type = 'info') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    // Create content element
+    const content = document.createElement('div');
+    content.className = 'toast-content';
+    content.innerText = message;
+    
+    // Calculate dynamic font size based on message length
+    // Short text (e.g. "Saved") will be large (1.8rem)
+    // Long text (e.g. "Error: Something went wrong") will be smaller (1rem)
+    let fontSize = 1.125; // Default base size
+    const length = message.length;
+    
+    if (length < 15) {
+        fontSize = 1.75;
+    } else if (length < 30) {
+        fontSize = 1.4;
+    } else if (length < 50) {
+        fontSize = 1.1;
+    } else {
+        fontSize = 0.9;
+    }
+    
+    content.style.fontSize = `${fontSize}rem`;
+
+    toast.appendChild(content);
+    container.appendChild(toast);
+
+    // Auto-remove after 4 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.classList.add('fade-out');
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 4000);
+}
+

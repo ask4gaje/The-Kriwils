@@ -79,11 +79,11 @@ async function deleteQuiz(quizId) {
 
         if (error) throw error;
         
-        alert("Quiz deleted successfully.");
+        showToast("Quiz deleted successfully.", 'success');
         loadMyQuizzes(); // Refresh the list
     } catch (err) {
         console.error('Error deleting quiz:', err);
-        alert(`Failed to delete quiz: ${err.message}`);
+        showToast(`Failed to delete quiz: ${err.message}`, 'error');
     }
 }
 
@@ -178,7 +178,7 @@ async function saveQuizEdits() {
     const updatedQuestions = [];
 
     if (!updatedTitle) {
-        alert("Quiz Title cannot be empty!");
+        showToast("Quiz Title cannot be empty!", 'error');
         return;
     }
 
@@ -211,13 +211,13 @@ async function saveQuizEdits() {
 
         if (error) throw error;
 
-        alert("Quiz updated successfully!");
+        showToast("Quiz updated successfully!", 'success');
         closeEditModal();
         loadMyQuizzes(); // Refresh cards
 
     } catch (err) {
         console.error('Error saving edits:', err);
-        alert(`Failed to save: ${err.message}`);
+        showToast(`Failed to save: ${err.message}`, 'error');
     } finally {
         saveBtn.disabled = false;
         saveBtn.innerText = "Save Changes";
@@ -310,7 +310,7 @@ function closeStatsModal() {
  */
 function copySpecificLink(link) {
     navigator.clipboard.writeText(link);
-    alert("Link copied to clipboard!");
+    showToast("Link copied to clipboard!", 'info');
 }
 
 // Load quizzes on initial page load

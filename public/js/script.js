@@ -94,17 +94,17 @@ document.getElementById('generateBtn').onclick = async function() {
     const generateBtn = document.getElementById('generateBtn');
 
     if (pdfFile && typeof pdfjsLib === 'undefined') {
-        alert("PDF library is still loading or failed to load. Please refresh and try again.");
+        showToast("PDF library is still loading or failed to load. Please refresh and try again.", 'error');
         return;
     }
 
     if (!title) {
-        alert("Please enter a Quiz Title!");
+        showToast("Please enter a Quiz Title!", 'error');
         return;
     }
 
     if (!topic && !pdfFile) {
-        alert("Please enter a topic or upload a PDF!");
+        showToast("Please enter a topic or upload a PDF!", 'error');
         return;
     }
 
@@ -167,7 +167,7 @@ document.getElementById('generateBtn').onclick = async function() {
         // 3. Save to Supabase
         const session = await checkSession();
         if (!session) {
-            alert("Session expired. Please log in again.");
+            showToast("Session expired. Please log in again.", 'error');
             window.location.href = 'login.html';
             return;
         }
@@ -216,5 +216,5 @@ function copyLink() {
     const copyText = document.getElementById("shareLinkInput");
     copyText.select();
     navigator.clipboard.writeText(copyText.value);
-    alert("Link copied to clipboard!");
+    showToast("Link copied to clipboard!", 'info');
 }

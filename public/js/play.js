@@ -90,7 +90,7 @@ function startQuiz() {
     }
     
     if (!playerName) {
-        alert("Please enter your name!");
+        showToast("Please enter your name!", 'error');
         return;
     }
 

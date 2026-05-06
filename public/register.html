@@ -51,8 +51,10 @@
                     errorDiv.style.display = "block";
                 } else {
                     console.log('User registered:', data);
-                    alert("Registration successful! You can now log in.");
-                    window.location.href = 'login.html';
+                    showToast("Registration successful! You can now log in.", 'success');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
                 }
             } catch (err) {
                 console.error('Client-side error:', err);
