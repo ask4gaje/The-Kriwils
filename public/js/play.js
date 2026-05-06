@@ -58,6 +58,19 @@ async function loadQuiz() {
         }
 
         document.getElementById('loading').style.display = 'none';
+        
+        // 3. Name Retention Check
+        const savedName = localStorage.getItem('playerName_' + currentQuizId);
+        if (savedName) {
+            playerName = savedName;
+            document.getElementById('namePrompt').innerHTML = `
+                <h2 style="margin-bottom: 1rem;">Selamat Datang Kembali, ${playerName}!</h2>
+                <p style="margin-bottom: 2rem;">Siap untuk mencoba lagi dan meningkatkan skor Anda?</p>
+                <button onclick="startQuiz()">Mulai Kuis</button>
+                <p style="margin-top: 1.5rem; font-size: 0.8125rem; color: var(--text-muted); cursor: pointer; text-decoration: underline;" onclick="clearSavedName()">Bukan Anda? Ganti Nama</p>
+            `;
+        }
+
         document.getElementById('namePrompt').style.display = 'block';
     } catch (err) {
         console.error("Error loading quiz:", err);
@@ -65,12 +78,24 @@ async function loadQuiz() {
     }
 }
 
+function clearSavedName() {
+    localStorage.removeItem('playerName_' + currentQuizId);
+    location.reload();
+}
+
 function startQuiz() {
-    playerName = document.getElementById('playerName').value.trim();
+    const nameInput = document.getElementById('playerName');
+    if (nameInput) {
+        playerName = nameInput.value.trim();
+    }
+    
     if (!playerName) {
         alert("Please enter your name!");
         return;
     }
+
+    // Save name for next time
+    localStorage.setItem('playerName_' + currentQuizId, playerName);
 
     document.getElementById('namePrompt').style.display = 'none';
     document.getElementById('quizApp').style.display = 'block';
@@ -166,19 +191,46 @@ async function showResults() {
     // Save Replay status to local storage
     localStorage.setItem('played_' + currentQuizId, 'true');
 
-    // Save Score to Database
+    // Save Score to Database (High Score Only)
     try {
-        const { error } = await supabaseClient
+        // 1. Check for existing score
+        const { data: existing, error: fetchError } = await supabaseClient
             .from('quiz_results')
-            .insert({
-                quiz_id: currentQuizId,
-                player_name: playerName,
-                score: score,
-                total_questions: currentQuestions.length
-            });
+            .select('id, score')
+            .eq('quiz_id', currentQuizId)
+            .eq('player_name', playerName)
+            .maybeSingle();
 
-        if (error) throw error;
-        console.log("Score saved successfully!");
+        if (fetchError) throw fetchError;
+
+        if (existing) {
+            // 2. Update if higher
+            if (score > existing.score) {
+                const { error: updateError } = await supabaseClient
+                    .from('quiz_results')
+                    .update({ 
+                        score: score,
+                        created_at: new Date().toISOString() // Update timestamp to newest high score
+                    })
+                    .eq('id', existing.id);
+                if (updateError) throw updateError;
+                console.log("High score updated!");
+            } else {
+                console.log("Existing score is higher or equal. Not updating.");
+            }
+        } else {
+            // 3. New record
+            const { error: insertError } = await supabaseClient
+                .from('quiz_results')
+                .insert({
+                    quiz_id: currentQuizId,
+                    player_name: playerName,
+                    score: score,
+                    total_questions: currentQuestions.length
+                });
+            if (insertError) throw insertError;
+            console.log("Score saved successfully!");
+        }
     } catch (err) {
         console.error("Error saving score:", err);
     }

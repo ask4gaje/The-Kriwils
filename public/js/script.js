@@ -1,4 +1,11 @@
 const GEMINI_API_KEY = 'AIzaSyA_gKJFHKVwXggzUm_Dpp_4qqf8WoRLJ3I';
+const MAX_TOPIC_LENGTH = 150;
+
+// Enforce topic length limit on load
+document.addEventListener('DOMContentLoaded', () => {
+    const topicInput = document.getElementById('quizTopic');
+    if (topicInput) topicInput.maxLength = MAX_TOPIC_LENGTH;
+});
 
 /**
  * Calls Gemini API with a retry mechanism and model fallback.
