@@ -1,4 +1,3 @@
-const GEMINI_API_KEY = 'AIzaSyA_gKJFHKVwXggzUm_Dpp_4qqf8WoRLJ3I';
 const MAX_TOPIC_LENGTH = 150;
 
 // PDF.js worker setup
@@ -34,44 +33,42 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Calls Gemini API with a retry mechanism and model fallback.
- * Primary: gemini-2.0-flash, Fallback: gemini-flash-latest
+ * Calls Gemini API via a secure server-side proxy.
+ * This prevents the API Key from being exposed to the browser.
  */
 async function askGeminiWithRetry(prompt, retries = 3, delay = 2000) {
-    const models = ['gemini-2.0-flash', 'gemini-flash-latest']; // Use correct identifiers from ListModels
+    const models = ['gemini-2.0-flash', 'gemini-flash-latest']; 
     
     for (const model of models) {
-        console.log(`Attempting generation with model: ${model}`);
+        console.log(`Attempting generation with model: ${model} via proxy`);
         for (let i = 0; i < retries; i++) {
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`, {
+                const response = await fetch('/api/generate-quiz', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    body: JSON.stringify({ prompt, model })
                 });
 
                 const data = await response.json();
 
                 // Handle 503 Service Unavailable or "high demand" errors
-                if (response.status === 503 || (data.error && data.error.code === 503) || (data.error && data.error.message.includes("high demand"))) {
+                if (response.status === 503 || (data.error && data.error.code === 503) || (data.error && data.error.message && data.error.message.includes("high demand"))) {
                     console.warn(`Model ${model} is busy (Attempt ${i + 1}/${retries}). Retrying in ${delay}ms...`);
                     await new Promise(res => setTimeout(res, delay));
-                    delay *= 2; // Exponential backoff
+                    delay *= 2; 
                     continue;
                 }
 
                 if (!response.ok || data.error) {
-                    throw new Error(data.error ? data.error.message : `HTTP error! status: ${response.status}`);
+                    throw new Error(data.error ? (data.error.message || data.error) : `HTTP error! status: ${response.status}`);
                 }
 
                 return data;
             } catch (err) {
-                // If it's the last retry of the last model, throw the error
                 if (i === retries - 1 && model === models[models.length - 1]) throw err;
                 console.error(`Attempt ${i + 1} for ${model} failed:`, err.message);
             }
         }
-        console.warn(`Model ${model} failed after ${retries} attempts. Trying fallback model...`);
     }
 }
 
