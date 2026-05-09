@@ -18,6 +18,7 @@ yarn-error.log*
 DEPLOYMENT.md
 GEMINI.md
 CODE_EXPLAINED.md
+.geminiignore
 
 # Environment Variables
 .env
