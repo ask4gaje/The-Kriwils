@@ -4,7 +4,7 @@ This document outlines the testing protocol to verify the architectural upgrades
 
 ---
 
-- [ ] ### Phase 1: Routing & Dynamic Navigation
+- [ ] ***Phase 1: Routing & Dynamic Navigation***
 **Goal:** Verify that the website handles logged-in vs. guest users correctly.
 
 1. **Guest Landing Page**:
