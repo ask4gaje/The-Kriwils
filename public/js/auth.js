@@ -58,7 +58,10 @@ async function renderNavigation() {
     if (!navLinks) return;
 
     const session = await checkSession();
-    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    // Improved path extraction to handle query params and root
+    const fullPath = window.location.pathname;
+    let currentPage = fullPath.split('/').pop() || 'join.html'; // Root is join.html on dev branch
+    if (fullPath === '/' || fullPath === '') currentPage = 'join.html';
 
     if (session) {
         // Authenticated Menu: Create, Play, Quiz, About, Logout
@@ -82,7 +85,8 @@ async function renderNavigation() {
 // Global protection and nav rendering
 document.addEventListener('DOMContentLoaded', () => {
     const protectedPaths = ['index.html', 'quizzes.html'];
-    const currentPath = window.location.pathname.split('/').pop();
+    // Extract clean path without query params
+    const currentPath = window.location.pathname.split('/').pop().split('?')[0];
 
     checkSession().then(session => {
         // Handle protection

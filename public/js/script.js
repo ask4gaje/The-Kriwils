@@ -1,4 +1,5 @@
 const MAX_TOPIC_LENGTH = 150;
+let isGenerating = false;
 
 // PDF.js worker setup
 if (typeof pdfjsLib !== 'undefined') {
@@ -26,60 +27,28 @@ async function extractTextFromPDF(file) {
     return fullText;
 }
 
-// Enforce topic length limit on load
+// Enforce topic length limit on load and bind handlers
 document.addEventListener('DOMContentLoaded', () => {
     const topicInput = document.getElementById('quizTopic');
     if (topicInput) topicInput.maxLength = MAX_TOPIC_LENGTH;
+
+    const generateBtn = document.getElementById('generateBtn');
+    if (generateBtn) {
+        generateBtn.onclick = handleGenerateQuiz;
+    }
 });
 
-/**
- * Calls Gemini API via a secure server-side proxy.
- * This prevents the API Key from being exposed to the browser.
- */
-async function askGeminiWithRetry(prompt, retries = 3, delay = 2000) {
-    const models = ['gemini-2.0-flash', 'gemini-flash-latest']; 
-    
-    for (const model of models) {
-        console.log(`Attempting generation with model: ${model} via proxy`);
-        for (let i = 0; i < retries; i++) {
-            try {
-                const response = await fetch('/api/generate-quiz', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt, model })
-                });
-
-                const data = await response.json();
-
-                // Handle 503 Service Unavailable or "high demand" errors
-                if (response.status === 503 || (data.error && data.error.code === 503) || (data.error && data.error.message && data.error.message.includes("high demand"))) {
-                    console.warn(`Model ${model} is busy (Attempt ${i + 1}/${retries}). Retrying in ${delay}ms...`);
-                    await new Promise(res => setTimeout(res, delay));
-                    delay *= 2; 
-                    continue;
-                }
-
-                if (!response.ok || data.error) {
-                    throw new Error(data.error ? (data.error.message || data.error) : `HTTP error! status: ${response.status}`);
-                }
-
-                return data;
-            } catch (err) {
-                if (i === retries - 1 && model === models[models.length - 1]) throw err;
-                console.error(`Attempt ${i + 1} for ${model} failed:`, err.message);
-            }
-        }
+// Warn user if they try to leave while generating (Optional now, but good for feedback)
+window.onbeforeunload = function() {
+    if (isGenerating) {
+        return "Your quiz is being started in the background. You can stay or leave.";
     }
-}
+};
 
 /**
- * Generates a random 6-character short code for Pretty URLs.
+ * Main handler for the Generate Quiz button
  */
-function generateShortCode() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
-
-document.getElementById('generateBtn').onclick = async function() {
+async function handleGenerateQuiz() {
     const title = document.getElementById('quizTitle').value.trim();
     const topic = document.getElementById('quizTopic').value.trim();
     const difficulty = document.getElementById('quizDifficulty').value;
@@ -105,15 +74,21 @@ document.getElementById('generateBtn').onclick = async function() {
         return;
     }
 
+    const session = await checkSession();
+    if (!session) {
+        showToast("Please login first!", 'error');
+        return;
+    }
+
     // UI Feedback
+    isGenerating = true;
     generateBtn.disabled = true;
-    generateBtn.innerText = "Generating Quiz...";
+    generateBtn.innerText = "Starting...";
     resultsDiv.style.display = "block";
     resultsDiv.innerHTML = `
         <div class="loading-wrapper">
             <div class="spinner"></div>
-            <p id="loadingStatus">AI is crafting your questions for <strong>${title}</strong>...</p>
-            <small>This may take a minute if using a PDF.</small>
+            <p id="loadingStatus">Initializing background generation for <strong>${title}</strong>...</p>
         </div>
     `;
 
@@ -125,103 +100,58 @@ document.getElementById('generateBtn').onclick = async function() {
         if (pdfFile) {
             document.getElementById('loadingStatus').innerText = "Reading your PDF file...";
             pdfContext = await extractTextFromPDF(pdfFile);
-            document.getElementById('loadingStatus').innerHTML = `AI is reading <strong>${pdfFile.name}</strong>...`;
         }
 
-        // 1. Prepare Prompt
-        let prompt = `Generate a quiz about "${topic}" with ${difficulty} difficulty. 
-        Return strictly a JSON array of ${count} objects. 
-        All content (questions, options, explanations) MUST be in Indonesian language.
-        Each object must have: "question", "options" (array of 4 strings), and "answer" (index of correct option 0-3), and "explanation" (a brief explanation in Indonesian of why the answer is correct).
-        Example: [{"question": "Apa itu 1+1?", "options": ["1", "2", "3", "4"], "answer": 1, "explanation": "1 tambah 1 adalah 2."}]`;
-
-        if (pdfContext) {
-            prompt = `Berikut adalah materi referensi (PDF Content):
-            ---
-            ${pdfContext.substring(0, 15000)} 
-            ---
-            Berdasarkan materi referensi di atas, buatlah kuis tentang "${topic || 'materi tersebut'}" dengan tingkat kesulitan ${difficulty}. 
-            Kembalikan kuis dalam format JSON array yang terdiri dari ${count} objek.
-            PENTING: Seluruh pertanyaan, pilihan jawaban, dan penjelasan HARUS dalam Bahasa Indonesia.
-            Format objek: {"question": "...", "options": ["...", "...", "...", "..."], "answer": index, "explanation": "..."}`;
-        }
-
-        // 2. Call Gemini API with Retry
-        const data = await askGeminiWithRetry(prompt);
-
-        if (!data.candidates || data.candidates.length === 0) {
-            throw new Error("AI failed to generate a response. Please try a different topic.");
-        }
-
-        let text = data.candidates[0].content.parts[0].text;
-        
-        // Robust JSON extraction (finds the first '[' and last ']')
-        const start = text.indexOf('[');
-        const end = text.lastIndexOf(']');
-        if (start === -1 || end === -1) {
-            throw new Error("AI returned an invalid data format. Please try again.");
-        }
-
-        const questions = JSON.parse(text.substring(start, end + 1));
-
-        // 3. Save to Supabase
-        const session = await checkSession();
-        if (!session) {
-            showToast("Session expired. Please log in again.", 'error');
-            window.location.href = 'login.html';
-            return;
-        }
-
-        const { data: quizRecord, error } = await supabaseClient
-            .from('quizzes')
-            .insert({
-                creator_id: session.user.id,
-                title: title,
-                topic: topic,
-                difficulty: difficulty,
-                questions_json: questions,
-                is_replayable: isReplayable,
-                is_reviewable: isReviewable,
-                short_code: generateShortCode()
+        // Call the background enqueue endpoint
+        const response = await fetch('/api/enqueue-quiz', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jwt: session.access_token,
+                title,
+                topic,
+                difficulty,
+                count,
+                isReplayable,
+                isReviewable,
+                pdfContext
             })
-            .select()
-            .single();
+        });
 
-        if (error) throw error;
+        const data = await response.json();
 
-        // 4. Display Success & Link
-        const shareLink = `${window.location.origin}/play/${quizRecord.short_code}`;
+        if (!response.ok) {
+            throw new Error(data.error || 'Server Error');
+        }
+
+        // SUCCESS: The quiz has started in the background
+        showToast("Success! Your quiz is being built in the background.", 'success');
+        
         resultsDiv.innerHTML = `
             <div style="background: #ecfdf5; padding: 2rem; border-radius: 1rem; border: 1px solid #10b981; margin-top: 2rem; text-align: center;">
-                <h3 style="color: #065f46; margin-bottom: 0.5rem;">✨ Quiz Generated Successfully!</h3>
-                <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1.5rem;">Your quiz <strong>${title}</strong> is ready.</p>
-                
-                <div style="background: white; padding: 1.5rem; border-radius: 0.75rem; border: 2px dashed #10b981; margin-bottom: 1.5rem; display: inline-block; min-width: 200px;">
-                    <p style="font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;">Quiz Code</p>
-                    <div style="font-size: 2.5rem; font-weight: 800; color: #059669; font-family: 'Courier New', Courier, monospace; letter-spacing: 0.2rem;">
-                        ${quizRecord.short_code}
-                    </div>
-                </div>
-
+                <h3 style="color: #065f46; margin-bottom: 0.5rem;">🚀 Background Generation Started!</h3>
+                <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1.5rem;">
+                    We are crafting <strong>${title}</strong> right now. 
+                    You can safely leave this page or stay here.
+                </p>
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                    <button onclick="copyToClipboard('${shareLink}')" style="width: auto; padding: 0.75rem 1.5rem; background: #10b981; color: white; border-radius: 0.5rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.2s;">
-                        Copy Share Link
+                    <button onclick="window.location.href='quizzes.html'" style="width: auto; padding: 0.75rem 1.5rem; background: #10b981; color: white; border-radius: 0.5rem; font-weight: 600; border: none; cursor: pointer;">
+                        View Progress in "My Quizzes"
                     </button>
-                    <a href="${shareLink}" target="_blank" style="color: #047857; font-weight: 600; font-size: 0.95rem; text-decoration: underline;">
-                        Instant Play Link →
-                    </a>
                 </div>
             </div>
         `;
 
     } catch (err) {
-        console.error('Final Generation Error:', err);
-        resultsDiv.innerHTML = `<p style="color: #dc2626; text-align:center;">Failed after multiple retries: ${err.message}. Please wait a minute and try again.</p>`;
+        console.error('Generation Error:', err);
+        showToast(err.message, 'error');
+        resultsDiv.innerHTML = `<p style="color: #dc2626; text-align:center; padding: 1rem;">Error: ${err.message}</p>`;
     } finally {
+        isGenerating = false;
         generateBtn.disabled = false;
         generateBtn.innerText = "Generate Quiz";
     }
-};
+}
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {

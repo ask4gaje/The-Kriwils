@@ -12,12 +12,15 @@ async function loadMyQuizzes() {
         const session = await checkSession();
         if (!session) return;
 
-        listContainer.innerHTML = `
-            <div class="loading-wrapper" style="grid-column: 1/-1;">
-                <div class="spinner"></div>
-                <p>Loading your quizzes...</p>
-            </div>
-        `;
+        // Note: We don't clear the container if it's a background refresh to avoid flickering
+        if (listContainer.innerHTML.includes('spinner') && !listContainer.querySelector('.quiz-card')) {
+             listContainer.innerHTML = `
+                <div class="loading-wrapper" style="grid-column: 1/-1;">
+                    <div class="spinner"></div>
+                    <p>Loading your quizzes...</p>
+                </div>
+            `;
+        }
 
         const { data: quizzes, error } = await supabaseClient
             .from('quizzes')
@@ -33,13 +36,28 @@ async function loadMyQuizzes() {
         }
 
         listContainer.innerHTML = quizzes.map((quiz, index) => {
+            const isPending = quiz.status === 'pending';
+            const quizTitle = quiz.title || quiz.topic || "Untitled Quiz";
+            const questionCount = quiz.questions_json ? quiz.questions_json.length : 0;
             const shareLink = quiz.short_code 
                 ? `${window.location.origin}/play/${quiz.short_code}`
                 : `${window.location.origin}/play.html?quiz=${quiz.id}`;
-            
-            const questionCount = quiz.questions_json ? quiz.questions_json.length : 0;
-            const quizTitle = quiz.title || quiz.topic; // Fallback to topic if title is null
-            
+
+            if (isPending) {
+                return `
+                    <div class="quiz-card" style="animation-delay: ${index * 0.1}s; border-style: dashed; opacity: 0.8;">
+                        <div class="quiz-card-header">
+                            <div class="quiz-card-topic" style="color: var(--primary-color)">⏳ Generating: ${quizTitle}</div>
+                            <div class="quiz-card-meta">AI is writing your questions...</div>
+                            <div class="spinner" style="width: 20px; height: 20px; border-width: 2px; margin: 1rem 0 0 0;"></div>
+                        </div>
+                        <div class="quiz-card-actions">
+                            <button disabled class="btn btn-secondary" style="cursor: not-allowed; opacity: 0.5;">Please wait...</button>
+                        </div>
+                    </div>
+                `;
+            }
+
             return `
                 <div class="quiz-card" style="animation-delay: ${index * 0.1}s">
                     <button class="btn-edit" onclick="openEditModal('${quiz.id}')">✏️ Edit</button>
@@ -56,6 +74,11 @@ async function loadMyQuizzes() {
                 </div>
             `;
         }).join('');
+
+        // If there's a pending quiz, refresh the list again in 5 seconds
+        if (quizzes.some(q => q.status === 'pending')) {
+            setTimeout(loadMyQuizzes, 5000);
+        }
 
     } catch (err) {
         console.error('Error loading quizzes:', err);
@@ -117,7 +140,7 @@ async function openEditModal(quizId) {
                 <h4>General Settings</h4>
                 <div class="form-group">
                     <label>Quiz Title</label>
-                    <input type="text" id="editQuizTitle" value="${(quiz.title || quiz.topic).replace(/"/g, '&quot;')}">
+                    <input type="text" id="editQuizTitle" value="${(quiz.title || quiz.topic || "").replace(/"/g, '&quot;')}">
                 </div>
                 <div class="checkbox-group" style="margin-top: 1rem;">
                     <label>
