@@ -4,7 +4,7 @@ This document outlines the testing protocol to verify the architectural upgrades
 
 ---
 
-### Phase 1: Routing & Dynamic Navigation
+- [ ] ### Phase 1: Routing & Dynamic Navigation
 **Goal:** Verify that the website handles logged-in vs. guest users correctly.
 
 1. **Guest Landing Page**:
@@ -20,7 +20,7 @@ This document outlines the testing protocol to verify the architectural upgrades
 
 ---
 
-### Phase 2: The "Join" Landing Page (Dual-Path Hero)
+- [ ] ### Phase 2: The "Join" Landing Page (Dual-Path Hero)
 **Goal:** Verify the new layout and intelligent redirection on `join.html`.
 
 1. **Guest "Host" Click**:
@@ -33,7 +33,7 @@ This document outlines the testing protocol to verify the architectural upgrades
 
 ---
 
-### Phase 3: Server-Side Background Generation
+- [ ] ### Phase 3: Server-Side Background Generation
 **Goal:** Verify that quizzes generate safely in the background and persist across page loads.
 
 1. **The Pre-Check & Auto-Scroll**:
@@ -52,7 +52,7 @@ This document outlines the testing protocol to verify the architectural upgrades
 
 ---
 
-### Phase 4: Error Handling & Edge Cases
+- [ ] ### Phase 4: Error Handling & Edge Cases
 **Goal:** Ensure the application degrades gracefully and prevents abuse.
 
 1. **Invalid Quiz Code**:
@@ -69,7 +69,7 @@ This document outlines the testing protocol to verify the architectural upgrades
 
 ---
 
-### Phase 5: UI Polish
+- [ ] ### Phase 5: UI Polish
 **Goal:** Verify smaller visual consistency tweaks.
 
 1. **Quiz Code Visibility**:
