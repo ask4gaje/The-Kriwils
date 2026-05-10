@@ -128,52 +128,97 @@ function generateShortCode() {
 
 // --- Background Job Logic ---
 
+/**
+ * Checks if Gemini is responsive before starting a long job.
+ */
+async function checkAiAvailability(apiKey) {
+    const model = 'gemini-2.5-flash';
+    const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    try {
+        const result = await makeRequest(testUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, {
+            contents: [{ parts: [{ text: "hi" }] }],
+            generationConfig: { maxOutputTokens: 1 }
+        });
+        
+        if (result.status !== 200) {
+            console.error(`[Pre-check] Ping failed for ${model}. Status: ${result.status}`, result.data);
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.error(`[Pre-check] Connection error during ping:`, e.message);
+        return false;
+    }
+}
+
 async function processBackgroundQuiz(quizId, userId, payload) {
     const apiKey = process.env.GEMINI_API_KEY;
     const { topic, difficulty, count, pdfContext, title } = payload;
 
-    try {
-        // 1. Prepare Prompt
-        let prompt = `Generate a quiz about "${topic}" with ${difficulty} difficulty. 
-        Return strictly a JSON array of ${count} objects. 
-        All content MUST be in Indonesian.
-        Format: [{"question": "...", "options": ["...", "..."], "answer": index, "explanation": "..."}]`;
+    console.log(`[Background] Starting job for Quiz ID: ${quizId} (User: ${userId})`);
 
-        if (pdfContext) {
-            prompt = `Materi: ${pdfContext.substring(0, 15000)}\n\nBuat kuis ${count} soal tentang "${topic || 'materi tersebut'}" (${difficulty}) dalam format JSON array Bahasa Indonesia.`;
+    // Updated to match the specific 2.5/flash-latest models available to this API key
+    const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest'];
+    let success = false;
+
+    for (const model of models) {
+        if (success) break;
+        try {
+            console.log(`[Background] Attempting with model: ${model}...`);
+            
+            // 1. Prepare Prompt
+            let prompt = `Generate a quiz about "${topic}" with ${difficulty} difficulty. 
+            Return strictly a JSON array of ${count} objects. 
+            All content MUST be in Indonesian.
+            Format: [{"question": "...", "options": ["...", "..."], "answer": index, "explanation": "..."}]`;
+
+            if (pdfContext) {
+                prompt = `Materi: ${pdfContext.substring(0, 15000)}\n\nBuat kuis ${count} soal tentang "${topic || 'materi tersebut'}" (${difficulty}) dalam format JSON array Bahasa Indonesia.`;
+            }
+
+            // 2. Call Gemini
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            const geminiResult = await makeRequest(
+                apiUrl,
+                { method: 'POST', headers: { 'Content-Type': 'application/json' } },
+                { contents: [{ parts: [{ text: prompt }] }] }
+            );
+
+            if (geminiResult.status !== 200 || !geminiResult.data.candidates) {
+                const errMsg = geminiResult.data?.error?.message || 'Unknown Gemini Error';
+                console.error(`[Background] ${model} Failed (${geminiResult.status}): ${errMsg}`);
+                continue; 
+            }
+
+            console.log(`[Background] ${model} success. Parsing JSON...`);
+            let text = geminiResult.data.candidates[0].content.parts[0].text;
+            const start = text.indexOf('[');
+            const end = text.lastIndexOf(']');
+            const questions = JSON.parse(text.substring(start, end + 1));
+
+            // 3. Update DB to Completed
+            console.log(`[Background] Updating Database...`);
+            const updateResult = await supabaseAdmin('PATCH', `quizzes?id=eq.${quizId}`, {
+                questions_json: questions,
+                status: 'completed'
+            });
+
+            if (updateResult.status >= 400) {
+                throw new Error(`DB Patch Error: ${updateResult.status}`);
+            }
+
+            success = true;
+            cooldowns[userId] = Date.now();
+            console.log(`✨ [Background] Quiz ${quizId} COMPLETED SUCCESSFULLY.`);
+
+        } catch (err) {
+            console.error(`[Background] Error with ${model}:`, err.message);
         }
+    }
 
-        // 2. Call Gemini
-        const geminiResult = await makeRequest(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-            { method: 'POST', headers: { 'Content-Type': 'application/json' } },
-            { contents: [{ parts: [{ text: prompt }] }] }
-        );
-
-        if (geminiResult.status !== 200 || !geminiResult.data.candidates) {
-            throw new Error('Gemini API Error');
-        }
-
-        let text = geminiResult.data.candidates[0].content.parts[0].text;
-        const start = text.indexOf('[');
-        const end = text.lastIndexOf(']');
-        const questions = JSON.parse(text.substring(start, end + 1));
-
-        // 3. Update DB to Completed
-        await supabaseAdmin('PATCH', `quizzes?id=eq.${quizId}`, {
-            questions_json: questions,
-            status: 'completed'
-        });
-
-        // 4. Start Cooldown only after SUCCESS
-        cooldowns[userId] = Date.now();
-        console.log(`Quiz ${quizId} completed successfully for user ${userId}`);
-
-    } catch (err) {
-        console.error(`Background Job Failed for ${quizId}:`, err.message);
-        // 5. Delete on failure
+    if (!success) {
+        console.error(`❌ [Background] ALL MODELS FAILED for Quiz ${quizId}. Cleaning up...`);
         await supabaseAdmin('DELETE', `quizzes?id=eq.${quizId}`);
-        console.log(`Cleaned up failed quiz ${quizId}`);
     }
 }
 
@@ -191,12 +236,40 @@ http.createServer(async (req, res) => {
         }));
     }
 
+    // DEBUG: List Gemini Models
+    if (urlPath === '/api/list-models' && req.method === 'GET') {
+        const apiKey = process.env.GEMINI_API_KEY;
+        const testUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+        
+        https.get(testUrl, (apiRes) => {
+            let data = '';
+            apiRes.on('data', d => data += d);
+            apiRes.on('end', () => {
+                res.writeHead(apiRes.statusCode, { 'Content-Type': 'application/json' });
+                res.end(data);
+            });
+        }).on('error', (e) => {
+            res.writeHead(500);
+            res.end(JSON.stringify({ error: e.message }));
+        });
+        return;
+    }
+
     // API: Enqueue Background Quiz
     if (urlPath === '/api/enqueue-quiz' && req.method === 'POST') {
         try {
             const body = await getBody(req);
             const user = await verifyUser(body.jwt);
             const userId = user.id;
+
+            // NEW: Pre-check AI availability before sending success toast
+            console.log('[API] Checking AI Availability before accepting...');
+            const isAiUp = await checkAiAvailability(process.env.GEMINI_API_KEY);
+            if (!isAiUp) {
+                console.error('[API] AI Pre-check failed.');
+                res.writeHead(503);
+                return res.end(JSON.stringify({ error: 'Gemini AI is currently busy or unreachable. Please try again later.' }));
+            }
 
             // Check if user already has a pending quiz
             const pendingCheck = await supabaseAdmin('GET', `quizzes?creator_id=eq.${userId}&status=eq.pending`);
@@ -219,13 +292,17 @@ http.createServer(async (req, res) => {
                 title: body.title,
                 topic: body.topic,
                 difficulty: body.difficulty,
+                questions_json: [], 
                 is_replayable: body.isReplayable,
                 is_reviewable: body.isReviewable,
                 short_code: generateShortCode(),
                 status: 'pending'
             });
 
-            if (insertResult.status !== 201) throw new Error('Failed to initialize quiz in DB');
+            if (insertResult.status !== 201) {
+                console.error('Database Insert Error:', insertResult.status, insertResult.data);
+                throw new Error(`Failed to initialize quiz in DB: ${insertResult.data?.message || 'Unknown Error'}`);
+            }
 
             const quizRecord = insertResult.data[0];
 
@@ -233,7 +310,7 @@ http.createServer(async (req, res) => {
             res.writeHead(202);
             res.end(JSON.stringify({ message: 'Generation started', quizId: quizRecord.id }));
 
-            // Trigger background process (Don't await it!)
+            // Trigger background process
             processBackgroundQuiz(quizRecord.id, userId, body);
 
         } catch (err) {
@@ -243,9 +320,9 @@ http.createServer(async (req, res) => {
         return;
     }
 
-    // Proxy API (Legacy, kept for compatibility if needed)
+    // Proxy API (Legacy)
     if (urlPath === '/api/generate-quiz' && req.method === 'POST') {
-        res.writeHead(410); // Gone
+        res.writeHead(410); 
         return res.end(JSON.stringify({ error: 'Your browser is running an old version of the app. Please refresh the page (Ctrl+F5).' }));
     }
 
@@ -268,5 +345,21 @@ http.createServer(async (req, res) => {
         }
     });
 }).listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}/`);
+    console.log(`\n🚀 Server running at http://localhost:${PORT}/`);
+    
+    // Startup Health Check
+    console.log('--- Environment Check ---');
+    const required = ['GEMINI_API_KEY', 'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
+    let allOk = true;
+    required.forEach(key => {
+        if (!process.env[key]) {
+            console.error(`❌ MISSING: ${key}`);
+            allOk = false;
+        } else {
+            console.log(`✅ LOADED: ${key}`);
+        }
+    });
+    if (allOk) console.log('✨ All systems ready!');
+    else console.warn('⚠️ Warning: Some features will not work without the keys above.');
+    console.log('-------------------------\n');
 });
