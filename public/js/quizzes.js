@@ -72,6 +72,7 @@ async function loadMyQuizzes() {
                     </div>
                     <div class="quiz-card-actions">
                         <button onclick="showStats('${quiz.id}', '${quizTitle.replace(/'/g, "\\'")}')" class="btn btn-primary">Stats</button>
+                        <button onclick="exportToPDF('${quiz.id}', '${quizTitle.replace(/'/g, "\\'")}')" class="btn btn-primary" style="background: #1f2937; border-color: #1f2937;">🖨️ Print</button>
                         <button onclick="copySpecificLink('${shareLink}')" class="btn btn-secondary">Copy Link</button>
                         <button onclick="deleteQuiz('${quiz.id}')" class="btn btn-danger">Delete</button>
                     </div>
@@ -350,6 +351,155 @@ function closeStatsModal() {
 function copySpecificLink(link) {
     navigator.clipboard.writeText(link);
     showToast("Link copied to clipboard!", 'info');
+}
+
+/**
+ * Dynamically generates a printable HTML layout and triggers the browser print dialog.
+ */
+async function exportToPDF(quizId, quizTitle) {
+    try {
+        const client = await getSupabase();
+        if (!client) throw new Error("Database connection failed");
+
+        const { data: quiz, error } = await client
+            .from('quizzes')
+            .select('*')
+            .eq('id', quizId)
+            .single();
+
+        if (error) throw error;
+
+        const questions = quiz.questions_json;
+        if (!questions || questions.length === 0) {
+            showToast("This quiz has no questions to print.", 'error');
+            return;
+        }
+
+        // Construct the printable HTML document
+        let printHtml = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <title>${quizTitle} - Exam</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        max-width: 800px;
+                        margin: 0 auto;
+                        padding: 20px;
+                    }
+                    .header {
+                        text-align: center;
+                        margin-bottom: 30px;
+                        padding-bottom: 20px;
+                        border-bottom: 2px solid #ccc;
+                    }
+                    .student-info {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 30px;
+                        font-size: 1.1em;
+                    }
+                    .question-block {
+                        margin-bottom: 25px;
+                        page-break-inside: avoid;
+                    }
+                    .question-text {
+                        font-weight: bold;
+                        margin-bottom: 10px;
+                    }
+                    .options-list {
+                        list-style-type: upper-alpha;
+                        margin-left: 20px;
+                    }
+                    .option-item {
+                        margin-bottom: 5px;
+                    }
+                    .page-break {
+                        page-break-before: always;
+                    }
+                    .answer-key-block {
+                        margin-bottom: 15px;
+                    }
+                    @media print {
+                        body { padding: 0; }
+                        @page { margin: 2cm; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>${quizTitle}</h1>
+                    <p>Topic: ${quiz.topic} | Difficulty: ${quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)}</p>
+                </div>
+                
+                <div class="student-info">
+                    <div>Name: __________________________________</div>
+                    <div>Date: ____________________</div>
+                </div>
+        `;
+
+        // Generate Questions
+        questions.forEach((q, index) => {
+            printHtml += `
+                <div class="question-block">
+                    <div class="question-text">${index + 1}. ${q.question}</div>
+                    <ol class="options-list">
+                        ${q.options.map(opt => `<li class="option-item">${opt}</li>`).join('')}
+                    </ol>
+                </div>
+            `;
+        });
+
+        // Answer Key Page
+        printHtml += `
+                <div class="page-break"></div>
+                <div class="header">
+                    <h1>Answer Key - DO NOT DISTRIBUTE</h1>
+                    <p>${quizTitle}</p>
+                </div>
+        `;
+
+        questions.forEach((q, index) => {
+            const correctOptionLetter = String.fromCharCode(65 + q.answer); // 0 -> A, 1 -> B
+            printHtml += `
+                <div class="answer-key-block">
+                    <strong>${index + 1}. Correct Answer: ${correctOptionLetter}</strong> (${q.options[q.answer]})
+                    <br>
+                    <em>Explanation:</em> ${q.explanation || 'No explanation provided.'}
+                </div>
+            `;
+        });
+
+        printHtml += `
+            </body>
+            </html>
+        `;
+
+        // Open in a new window and print
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            showToast("Please allow pop-ups to print the exam.", 'error');
+            return;
+        }
+
+        printWindow.document.open();
+        printWindow.document.write(printHtml);
+        printWindow.document.close();
+
+        // Wait for content to load before calling print
+        printWindow.onload = function() {
+            printWindow.focus();
+            printWindow.print();
+        };
+
+    } catch (err) {
+        console.error('Error generating PDF:', err);
+        showToast(`Failed to generate printable exam: ${err.message}`, 'error');
+    }
 }
 
 // Load quizzes on initial page load
