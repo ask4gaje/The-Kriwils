@@ -68,6 +68,7 @@ async function loadMyQuizzes() {
                         <div class="quiz-card-topic">${quizTitle}</div>
                         <div class="quiz-card-meta">Topic: ${quiz.topic}</div>
                         <div class="quiz-card-meta">${quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)} • ${questionCount} Questions</div>
+                        ${quiz.short_code ? `<div class="quiz-card-meta" style="margin-top: 0.5rem; font-family: 'Courier New', Courier, monospace; font-weight: 800; color: var(--primary-color); background: #eef2ff; display: inline-block; padding: 0.25rem 0.5rem; border-radius: 0.25rem; letter-spacing: 0.1em;">Code: ${quiz.short_code}</div>` : ''}
                     </div>
                     <div class="quiz-card-actions">
                         <button onclick="showStats('${quiz.id}', '${quizTitle.replace(/'/g, "\\'")}')" class="btn btn-primary">Stats</button>
