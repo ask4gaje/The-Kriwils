@@ -61,19 +61,20 @@ async function renderNavigation() {
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
     if (session) {
-        // Authenticated Menu: Home, Play, Quiz, About, Logout
+        // Authenticated Menu: Create, Play, Quiz, About, Logout
         navLinks.innerHTML = `
-            <li><a href="index.html" class="${currentPage === 'index.html' ? 'active' : ''}">Home</a></li>
+            <li><a href="index.html" class="${currentPage === 'index.html' ? 'active' : ''}">Create</a></li>
             <li><a href="join.html" class="${currentPage === 'join.html' ? 'active' : ''}">Play</a></li>
             <li><a href="quizzes.html" class="${currentPage === 'quizzes.html' ? 'active' : ''}">Quiz</a></li>
             <li><a href="about.html" class="${currentPage === 'about.html' ? 'active' : ''}">About</a></li>
             <li><button onclick="logoutUser()" class="btn-logout">Logout</button></li>
         `;
     } else {
-        // Unauthenticated Menu: About, Login
+        // Unauthenticated Menu: Play, About, Login
         navLinks.innerHTML = `
+            <li><a href="join.html" class="${currentPage === 'join.html' ? 'active' : ''}">Play</a></li>
             <li><a href="about.html" class="${currentPage === 'about.html' ? 'active' : ''}">About</a></li>
-            <li><a href="login.html" class="${currentPage === 'login.html' ? 'active' : ''}">Login</a></li>
+            <li><a href="login.html" class="btn-login">Login</a></li>
         `;
     }
 }
