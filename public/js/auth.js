@@ -47,19 +47,53 @@ async function logoutUser() {
 }
 
 async function checkSession() {
+    if (!supabaseClient) return null;
     const { data: { session } } = await supabaseClient.auth.getSession();
     return session;
 }
 
-// Global protection for index.html (Dashboard) and quizzes.html
-const protectedPaths = ['index.html', 'quizzes.html', '/'];
-if (protectedPaths.some(path => window.location.pathname.endsWith(path) || (path === '/' && window.location.pathname === '/'))) {
-    checkSession().then(session => {
-        if (!session) {
-            window.location.href = 'login.html';
-        }
-    });
+// Dynamic Navigation Logic
+async function renderNavigation() {
+    const navLinks = document.querySelector('.nav-links');
+    if (!navLinks) return;
+
+    const session = await checkSession();
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
+    if (session) {
+        // Authenticated Menu: Home, Play, Quiz, About, Logout
+        navLinks.innerHTML = `
+            <li><a href="index.html" class="${currentPage === 'index.html' ? 'active' : ''}">Home</a></li>
+            <li><a href="join.html" class="${currentPage === 'join.html' ? 'active' : ''}">Play</a></li>
+            <li><a href="quizzes.html" class="${currentPage === 'quizzes.html' ? 'active' : ''}">Quiz</a></li>
+            <li><a href="about.html" class="${currentPage === 'about.html' ? 'active' : ''}">About</a></li>
+            <li><button onclick="logoutUser()" class="btn-logout">Logout</button></li>
+        `;
+    } else {
+        // Unauthenticated Menu: About, Login
+        navLinks.innerHTML = `
+            <li><a href="about.html" class="${currentPage === 'about.html' ? 'active' : ''}">About</a></li>
+            <li><a href="login.html" class="${currentPage === 'login.html' ? 'active' : ''}">Login</a></li>
+        `;
+    }
 }
+
+// Global protection and nav rendering
+document.addEventListener('DOMContentLoaded', () => {
+    const protectedPaths = ['index.html', 'quizzes.html'];
+    const currentPath = window.location.pathname.split('/').pop();
+
+    checkSession().then(session => {
+        // Handle protection
+        if (protectedPaths.includes(currentPath) && !session) {
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        // Render Nav
+        renderNavigation();
+    });
+});
 
 /**
  * Custom Toast Notification System

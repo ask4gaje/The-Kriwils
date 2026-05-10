@@ -70,7 +70,7 @@ http.createServer((req, res) => {
         urlPath = '/play.html';
     }
 
-    let filePath = path.join(PUBLIC_DIR, urlPath === '/' ? 'login.html' : urlPath);
+    let filePath = path.join(PUBLIC_DIR, urlPath === '/' ? 'join.html' : urlPath);
     const extname = path.extname(filePath);
     let contentType = MIME_TYPES[extname] || 'application/octet-stream';
 
