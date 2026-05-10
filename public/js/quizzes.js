@@ -425,15 +425,15 @@ async function exportToPDF(quizId, quizTitle) {
                         margin-bottom: 15px;
                     }
                     @media print {
-                        body { padding: 0; }
-                        @page { margin: 2cm; }
+                        body { padding: 2cm; }
+                        @page { margin: 0; }
                     }
                 </style>
             </head>
             <body>
                 <div class="header">
                     <h1>${quizTitle}</h1>
-                    <p>Topic: ${quiz.topic} | Difficulty: ${quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)}</p>
+                    <p>Topic: ${quiz.topic}</p>
                 </div>
                 
                 <div class="student-info">
