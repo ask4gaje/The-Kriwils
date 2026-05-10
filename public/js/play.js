@@ -20,7 +20,10 @@ async function loadQuiz() {
     }
 
     try {
-        let query = supabaseClient.from('quizzes').select('*');
+        const client = await getSupabase();
+        if (!client) throw new Error("Database connection failed");
+
+        let query = client.from('quizzes').select('*');
         
         if (shortCode) {
             query = query.eq('short_code', shortCode);
@@ -193,8 +196,11 @@ async function showResults() {
 
     // Save Score to Database (High Score Only)
     try {
+        const client = await getSupabase();
+        if (!client) throw new Error("Database connection failed");
+
         // 1. Check for existing score
-        const { data: existing, error: fetchError } = await supabaseClient
+        const { data: existing, error: fetchError } = await client
             .from('quiz_results')
             .select('id, score')
             .eq('quiz_id', currentQuizId)
@@ -206,7 +212,7 @@ async function showResults() {
         if (existing) {
             // 2. Update if higher
             if (score > existing.score) {
-                const { error: updateError } = await supabaseClient
+                const { error: updateError } = await client
                     .from('quiz_results')
                     .update({ 
                         score: score,
@@ -220,7 +226,7 @@ async function showResults() {
             }
         } else {
             // 3. New record
-            const { error: insertError } = await supabaseClient
+            const { error: insertError } = await client
                 .from('quiz_results')
                 .insert({
                     quiz_id: currentQuizId,

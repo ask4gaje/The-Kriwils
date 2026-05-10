@@ -1,25 +1,51 @@
-// Supabase Configuration
-const SUPABASE_URL = 'https://ynebeknksjncpuhznngp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InluZWJla25rc2puY3B1aHpubmdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NTgzMDUsImV4cCI6MjA5MzUzNDMwNX0.OmwDA8fApYKnkH9mOmZBkl51qN9-XOTCHVa9UgMXM0s';
-
 let supabaseClient;
+let initPromise = null;
 
-try {
-    if (typeof supabase !== 'undefined') {
-        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('Supabase client initialized successfully');
-    } else {
-        console.error('Supabase library not found! Make sure the CDN script is loaded.');
-    }
-} catch (e) {
-    console.error('Error initializing Supabase:', e);
+/**
+ * Dynamically fetches Supabase configuration from the server.
+ * This prevents keys from being hardcoded in the frontend.
+ */
+async function initSupabase() {
+    if (supabaseClient) return supabaseClient;
+    if (initPromise) return initPromise;
+
+    initPromise = (async () => {
+        try {
+            const response = await fetch('/api/config');
+            const config = await response.json();
+
+            if (typeof supabase !== 'undefined') {
+                supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+                console.log('Supabase client initialized dynamically');
+                return supabaseClient;
+            } else {
+                console.error('Supabase library not found!');
+                return null;
+            }
+        } catch (e) {
+            console.error('Error fetching config or initializing Supabase:', e);
+            return null;
+        } finally {
+            initPromise = null;
+        }
+    })();
+
+    return initPromise;
+}
+
+/**
+ * Global getter to ensure Supabase is ready
+ */
+async function getSupabase() {
+    if (supabaseClient) return supabaseClient;
+    return await initSupabase();
 }
 
 // Helper to convert username to internal email
 const getInternalEmail = (username) => `${username.toLowerCase()}@thekriwils.local`;
 
 async function registerUser(username, password) {
-    if (!supabaseClient) throw new Error("Supabase client not initialized.");
+    if (!supabaseClient) await initSupabase();
     const email = getInternalEmail(username);
     const { data, error } = await supabaseClient.auth.signUp({
         email,
@@ -32,7 +58,7 @@ async function registerUser(username, password) {
 }
 
 async function loginUser(username, password) {
-    if (!supabaseClient) throw new Error("Supabase client not initialized.");
+    if (!supabaseClient) await initSupabase();
     const email = getInternalEmail(username);
     const { data, error } = await supabaseClient.auth.signInWithPassword({
         email,
@@ -42,11 +68,13 @@ async function loginUser(username, password) {
 }
 
 async function logoutUser() {
+    if (!supabaseClient) await initSupabase();
     const { error } = await supabaseClient.auth.signOut();
     if (!error) window.location.href = 'login.html';
 }
 
 async function checkSession() {
+    if (!supabaseClient) await initSupabase();
     if (!supabaseClient) return null;
     const { data: { session } } = await supabaseClient.auth.getSession();
     return session;
@@ -83,10 +111,14 @@ async function renderNavigation() {
 }
 
 // Global protection and nav rendering
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const protectedPaths = ['index.html', 'quizzes.html'];
     // Extract clean path without query params
-    const currentPath = window.location.pathname.split('/').pop().split('?')[0];
+    const pathParts = window.location.pathname.split('/').pop().split('?');
+    const currentPath = pathParts[0];
+
+    // Ensure Supabase is initialized before checking session
+    await initSupabase();
 
     checkSession().then(session => {
         // Handle protection
@@ -122,8 +154,6 @@ function showToast(message, type = 'info') {
     content.innerText = message;
     
     // Calculate dynamic font size based on message length
-    // Short text (e.g. "Saved") will be large (1.8rem)
-    // Long text (e.g. "Error: Something went wrong") will be smaller (1rem)
     let fontSize = 1.125; // Default base size
     const length = message.length;
     
@@ -150,4 +180,3 @@ function showToast(message, type = 'info') {
         }
     }, 4000);
 }
-

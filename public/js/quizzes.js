@@ -12,6 +12,9 @@ async function loadMyQuizzes() {
         const session = await checkSession();
         if (!session) return;
 
+        const client = await getSupabase();
+        if (!client) throw new Error("Database connection failed");
+
         // Note: We don't clear the container if it's a background refresh to avoid flickering
         if (listContainer.innerHTML.includes('spinner') && !listContainer.querySelector('.quiz-card')) {
              listContainer.innerHTML = `
@@ -22,7 +25,7 @@ async function loadMyQuizzes() {
             `;
         }
 
-        const { data: quizzes, error } = await supabaseClient
+        const { data: quizzes, error } = await client
             .from('quizzes')
             .select('*')
             .eq('creator_id', session.user.id)
@@ -95,7 +98,10 @@ async function deleteQuiz(quizId) {
     }
 
     try {
-        const { error } = await supabaseClient
+        const client = await getSupabase();
+        if (!client) throw new Error("Database connection failed");
+
+        const { error } = await client
             .from('quizzes')
             .delete()
             .eq('id', quizId);
@@ -124,7 +130,10 @@ async function openEditModal(quizId) {
     modal.style.display = 'flex';
 
     try {
-        const { data: quiz, error } = await supabaseClient
+        const client = await getSupabase();
+        if (!client) throw new Error("Database connection failed");
+
+        const { data: quiz, error } = await client
             .from('quizzes')
             .select('*')
             .eq('id', quizId)
@@ -209,6 +218,9 @@ async function saveQuizEdits() {
     saveBtn.innerText = "Saving...";
 
     try {
+        const client = await getSupabase();
+        if (!client) throw new Error("Database connection failed");
+
         blocks.forEach(block => {
             const question = block.querySelector('.edit-q-text').value.trim();
             const explanation = block.querySelector('.edit-explanation').value.trim();
@@ -222,7 +234,7 @@ async function saveQuizEdits() {
             updatedQuestions.push({ question, options, answer, explanation });
         });
 
-        const { error } = await supabaseClient
+        const { error } = await client
             .from('quizzes')
             .update({ 
                 title: updatedTitle,
@@ -264,7 +276,10 @@ async function showStats(quizId, topic, viewAll = false) {
     modal.style.display = 'flex';
 
     try {
-        let query = supabaseClient
+        const client = await getSupabase();
+        if (!client) throw new Error("Database connection failed");
+
+        let query = client
             .from('quiz_results')
             .select('*')
             .eq('quiz_id', quizId);

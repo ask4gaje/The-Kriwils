@@ -58,7 +58,18 @@ function makeRequest(url, options, body = null) {
         const req = https.request(url, options, (res) => {
             let data = '';
             res.on('data', d => data += d);
-            res.on('end', () => resolve({ status: res.statusCode, data: data ? JSON.parse(data) : null }));
+            res.on('end', () => {
+                let parsed = null;
+                if (data) {
+                    try {
+                        parsed = JSON.parse(data);
+                    } catch (e) {
+                        console.error('Failed to parse response JSON:', data.substring(0, 100));
+                        parsed = { raw: data };
+                    }
+                }
+                resolve({ status: res.statusCode, data: parsed });
+            });
         });
         req.on('error', reject);
         if (body) req.write(JSON.stringify(body));
@@ -71,17 +82,22 @@ function makeRequest(url, options, body = null) {
  */
 async function verifyUser(jwt) {
     const supabaseUrl = process.env.SUPABASE_URL;
+    const anonKey = process.env.SUPABASE_ANON_KEY;
+    
     if (!supabaseUrl) throw new Error('SUPABASE_URL not configured');
 
     const result = await makeRequest(`${supabaseUrl}/auth/v1/user`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${jwt}`,
-            'apikey': process.env.SUPABASE_ANON_KEY || jwt // PostgREST requires apikey
+            'apikey': anonKey || jwt 
         }
     });
 
-    if (result.status !== 200) throw new Error('Unauthorized or Session Expired');
+    if (result.status !== 200) {
+        console.error('JWT Verification Failed:', result.status, result.data);
+        throw new Error(`Unauthorized: ${result.status === 401 ? 'Session Expired' : 'Verification Error'}`);
+    }
     return result.data;
 }
 
@@ -166,6 +182,15 @@ async function processBackgroundQuiz(quizId, userId, payload) {
 http.createServer(async (req, res) => {
     let urlPath = req.url.split('?')[0];
 
+    // API: Public Config (Hiding keys from frontend code)
+    if (urlPath === '/api/config' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({
+            supabaseUrl: process.env.SUPABASE_URL,
+            supabaseAnonKey: process.env.SUPABASE_ANON_KEY
+        }));
+    }
+
     // API: Enqueue Background Quiz
     if (urlPath === '/api/enqueue-quiz' && req.method === 'POST') {
         try {
@@ -220,7 +245,8 @@ http.createServer(async (req, res) => {
 
     // Proxy API (Legacy, kept for compatibility if needed)
     if (urlPath === '/api/generate-quiz' && req.method === 'POST') {
-        // ... (can eventually remove this once script.js is updated)
+        res.writeHead(410); // Gone
+        return res.end(JSON.stringify({ error: 'Your browser is running an old version of the app. Please refresh the page (Ctrl+F5).' }));
     }
 
     // Pretty URL handling
