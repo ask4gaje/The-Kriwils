@@ -21,9 +21,9 @@
 
     <main style="max-width: 1000px;">
         <!-- Dual-Path Hero Section -->
-        <div class="hero-grid">
+        <div id="hero-grid-container" class="hero-grid">
             <!-- Play Path -->
-            <div class="hero-card">
+            <div id="play-path-card" class="hero-card">
                 <h2>Play a Quiz 🎮</h2>
                 <p>Have a code from your friend? Enter it below and join the game instantly.</p>
                 
@@ -35,7 +35,7 @@
             </div>
 
             <!-- Create Path -->
-            <div class="hero-card" style="border-style: dashed; background: #fdfcfe;">
+            <div id="host-path-card" class="hero-card" style="border-style: dashed; background: #fdfcfe;">
                 <h2>Host a Quiz 🧠</h2>
                 <p>Want to test your friends? Use our AI to generate a custom quiz in seconds.</p>
                 <ul style="text-align: left; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.5rem; list-style: none;">
@@ -72,12 +72,24 @@
 
     <script src="js/auth.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const joinBtn = document.getElementById('joinBtn');
             const joinInput = document.getElementById('joinQuizCode');
             const hostBtn = document.getElementById('hostBtn');
+            
+            const hostCard = document.getElementById('host-path-card');
+            const heroGrid = document.getElementById('hero-grid-container');
 
-            // Join Logic
+            // 1. Dynamic UI adjustment based on session
+            if (typeof checkSession === 'function') {
+                const session = await checkSession();
+                if (session && hostCard && heroGrid) {
+                    hostCard.style.display = 'none';
+                    heroGrid.classList.add('single-path');
+                }
+            }
+
+            // 2. Join Logic
             if (joinBtn && joinInput) {
                 joinBtn.onclick = () => {
                     const code = joinInput.value.trim().toUpperCase();

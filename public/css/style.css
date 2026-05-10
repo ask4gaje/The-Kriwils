@@ -624,6 +624,13 @@ nav button:hover {
     margin-top: 2rem;
 }
 
+.hero-grid.single-path {
+    grid-template-columns: 1fr;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 @media (max-width: 768px) {
     .hero-grid {
         grid-template-columns: 1fr;
