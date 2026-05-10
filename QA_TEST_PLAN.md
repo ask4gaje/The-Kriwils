@@ -9,10 +9,10 @@ This document outlines the testing protocol to verify the architectural upgrades
 
 1. **Guest Landing Page**:
     * Open an incognito window or ensure you are logged out.
-    * Navigate to `http://localhost:6767/`.
+    * Navigate to <http://localhost:6767/>
     * **Expected Result**: You should land on the "Join a Quiz" page (`join.html`). The navigation bar should only show **"Play"**, **"About"**, and **"Login"** (styled as a green button).
 2. **Protected Routes**:
-    * While still logged out, attempt to manually visit `http://localhost:6767/index.html` (Create) and `http://localhost:6767/quizzes.html` (Dashboard).
+    * While still logged out, attempt to manually visit <http://localhost:6767/index.html> (Create) and <http://localhost:6767/quizzes.html> (Dashboard).
     * **Expected Result**: You should be instantly redirected to the `login.html` page.
 3. **Logged-In Navigation**:
     * Log in to the application.
@@ -56,7 +56,7 @@ This document outlines the testing protocol to verify the architectural upgrades
 **Goal:** Ensure the application degrades gracefully and prevents abuse.
 
 1. **Invalid Quiz Code**:
-    * Go to the "Play" page using a fake code (e.g., `http://localhost:6767/play/FAKEEE`).
+    * Go to the "Play" page using a fake code (e.g., <http://localhost:6767/play/FAKEEE>).
     * **Expected Result**: Instead of plain red text, you should see a large, centered card with a 🤔 emoji saying **"Oops! Quiz Not Found"** and a "Try Another Code" button.
 2. **Simultaneous Generation Blocker**:
     * Start generating a quiz.
