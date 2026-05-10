@@ -7,6 +7,19 @@ let currentQuizId = "";
 let userAnswers = []; // Tracks selected option index for each question
 let quizSettings = { is_replayable: true, is_reviewable: true };
 
+function showErrorUI(message) {
+    const loadingDiv = document.getElementById('loading');
+    loadingDiv.className = ''; // remove loading-wrapper styling
+    loadingDiv.innerHTML = `
+        <div class="quiz-container" style="text-align: center; max-width: 400px; margin: 0 auto; border-top: 4px solid #ef4444;">
+            <div style="font-size: 3.5rem; margin-bottom: 1rem;">🤔</div>
+            <h2 style="color: #111827; margin-bottom: 0.75rem;">Oops! Quiz Not Found</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">${message}</p>
+            <button onclick="window.location.href='/join.html'" style="background: #111827; width: 100%;">Try Another Code</button>
+        </div>
+    `;
+}
+
 async function loadQuiz() {
     const urlParams = new URLSearchParams(window.location.search);
     const pathParts = window.location.pathname.split('/');
@@ -15,7 +28,7 @@ async function loadQuiz() {
     currentQuizId = urlParams.get('quiz');
 
     if (!currentQuizId && !shortCode) {
-        document.getElementById('loading').innerHTML = '<p style="color: #dc2626;">No quiz ID or code provided!</p>';
+        showErrorUI("No quiz ID or code provided. Please enter a valid 6-digit code.");
         return;
     }
 
@@ -77,7 +90,10 @@ async function loadQuiz() {
         document.getElementById('namePrompt').style.display = 'block';
     } catch (err) {
         console.error("Error loading quiz:", err);
-        document.getElementById('loading').innerHTML = `<p style="color: #dc2626;">Error: ${err.message}</p>`;
+        const displayMsg = (err.message === "Quiz not found" || err.code === "PGRST116") 
+            ? "The 6-character code you entered is invalid or the quiz has been deleted." 
+            : err.message;
+        showErrorUI(displayMsg);
     }
 }
 
