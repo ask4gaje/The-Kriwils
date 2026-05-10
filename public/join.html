@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join a Quiz - The Kriwils</title>
+    <link rel="stylesheet" href="css/style.css?v=1.2">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="nav-brand">The Kriwils</a>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="join.html" class="active">Play</a></li>
+            <li><a href="quizzes.html">Quiz</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><button onclick="logoutUser()" class="btn-logout">Logout</button></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="quiz-generator">
+            <h1>Join a Quiz</h1>
+            <p>Enter the 6-character code to start playing.</p>
+
+            <div class="generator-form" style="text-align: center; padding: 3rem 2rem;">
+                <div class="form-group" style="max-width: 300px; margin: 0 auto 2rem;">
+                    <label for="joinQuizCode" style="text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-size: 0.75rem;">Enter Quiz Code</label>
+                    <input type="text" id="joinQuizCode" placeholder="KRIWIL" maxlength="6" 
+                           style="font-size: 2rem; text-align: center; font-weight: 800; text-transform: uppercase; font-family: 'Courier New', Courier, monospace; letter-spacing: 0.3rem; border: 2px solid var(--primary-color);">
+                </div>
+                <button id="joinBtn" style="max-width: 300px; margin: 0 auto;">Enter Quiz</button>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const joinBtn = document.getElementById('joinBtn');
+            const joinInput = document.getElementById('joinQuizCode');
+
+            if (joinBtn && joinInput) {
+                joinBtn.onclick = () => {
+                    const code = joinInput.value.trim().toUpperCase();
+                    if (code.length === 6) {
+                        window.location.href = `/play/${code}`;
+                    } else {
+                        // showToast is available from auth.js
+                        if (typeof showToast === 'function') {
+                            showToast("Please enter a valid 6-character code!", 'error');
+                        } else {
+                            alert("Please enter a valid 6-character code!");
+                        }
+                    }
+                };
+
+                joinInput.onkeypress = (e) => {
+                    if (e.key === 'Enter') joinBtn.click();
+                };
+            }
+        });
+    </script>
+</body>
+</html>

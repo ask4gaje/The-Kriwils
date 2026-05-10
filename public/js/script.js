@@ -189,14 +189,25 @@ document.getElementById('generateBtn').onclick = async function() {
         // 4. Display Success & Link
         const shareLink = `${window.location.origin}/play/${quizRecord.short_code}`;
         resultsDiv.innerHTML = `
-            <div style="background: #ecfdf5; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #10b981; margin-top: 2rem;">
+            <div style="background: #ecfdf5; padding: 2rem; border-radius: 1rem; border: 1px solid #10b981; margin-top: 2rem; text-align: center;">
                 <h3 style="color: #065f46; margin-bottom: 0.5rem;">✨ Quiz Generated Successfully!</h3>
-                <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1rem;">Your quiz <strong>${title}</strong> is ready. You can share the link below with anyone.</p>
-                <div style="display: flex; gap: 0.5rem;">
-                    <input type="text" value="${shareLink}" readonly id="shareLinkInput" style="flex: 1; padding: 0.5rem; border: 1px solid #10b981; border-radius: 0.5rem;">
-                    <button onclick="copyLink()" style="width: auto; padding: 0.5rem 1rem; background: #10b981;">Copy</button>
+                <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1.5rem;">Your quiz <strong>${title}</strong> is ready.</p>
+                
+                <div style="background: white; padding: 1.5rem; border-radius: 0.75rem; border: 2px dashed #10b981; margin-bottom: 1.5rem; display: inline-block; min-width: 200px;">
+                    <p style="font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;">Quiz Code</p>
+                    <div style="font-size: 2.5rem; font-weight: 800; color: #059669; font-family: 'Courier New', Courier, monospace; letter-spacing: 0.2rem;">
+                        ${quizRecord.short_code}
+                    </div>
                 </div>
-                <p style="margin-top: 1rem; font-size: 0.875rem;"><a href="${shareLink}" target="_blank" style="color: #047857; font-weight: 600;">Play it now →</a></p>
+
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                    <button onclick="copyToClipboard('${shareLink}')" style="width: auto; padding: 0.75rem 1.5rem; background: #10b981; color: white; border-radius: 0.5rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.2s;">
+                        Copy Share Link
+                    </button>
+                    <a href="${shareLink}" target="_blank" style="color: #047857; font-weight: 600; font-size: 0.95rem; text-decoration: underline;">
+                        Instant Play Link →
+                    </a>
+                </div>
             </div>
         `;
 
@@ -209,9 +220,10 @@ document.getElementById('generateBtn').onclick = async function() {
     }
 };
 
-function copyLink() {
-    const copyText = document.getElementById("shareLinkInput");
-    copyText.select();
-    navigator.clipboard.writeText(copyText.value);
-    showToast("Link copied to clipboard!", 'info');
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast("Link copied to clipboard!", 'info');
+    }).catch(err => {
+        console.error('Copy failed', err);
+    });
 }

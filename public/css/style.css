@@ -54,10 +54,16 @@ nav a {
     color: var(--text-muted);
     font-weight: 500;
     transition: color 0.2s;
+    padding: 0.5rem 0;
+    border-bottom: 2px solid transparent;
 }
 
-nav a:hover {
+nav a:hover, nav a.active {
     color: var(--primary-color);
+}
+
+nav a.active {
+    border-bottom-color: var(--primary-color);
 }
 
 .btn-logout {
