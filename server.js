@@ -27,10 +27,6 @@ const MIME_TYPES = {
     '.svg': 'image/svg+xml',
 };
 
-// In-memory state for rate limiting
-const cooldowns = {}; // { userId: timestamp }
-const COOLDOWN_MS = 30000; // 30 seconds
-
 // --- Helper Functions ---
 
 /**
@@ -208,7 +204,6 @@ async function processBackgroundQuiz(quizId, userId, payload) {
             }
 
             success = true;
-            cooldowns[userId] = Date.now();
             console.log(`✨ [Background] Quiz ${quizId} COMPLETED SUCCESSFULLY.`);
 
         } catch (err) {
@@ -276,14 +271,6 @@ http.createServer(async (req, res) => {
             if (pendingCheck.data && pendingCheck.data.length > 0) {
                 res.writeHead(400);
                 return res.end(JSON.stringify({ error: 'Please wait for your current quiz to finish generating!' }));
-            }
-
-            // Check Cooldown (only after success)
-            const lastSuccess = cooldowns[userId] || 0;
-            const timePassed = Date.now() - lastSuccess;
-            if (timePassed < COOLDOWN_MS) {
-                res.writeHead(429);
-                return res.end(JSON.stringify({ error: `Slow down! Please wait ${Math.ceil((COOLDOWN_MS - timePassed) / 1000)}s.` }));
             }
 
             // Insert initial row

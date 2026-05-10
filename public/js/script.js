@@ -165,12 +165,7 @@ async function pollQuizStatus(quizId, title) {
 }
 
 
-// Warn user if they try to leave while generating (Optional now, but good for feedback)
-window.onbeforeunload = function() {
-    if (isGenerating) {
-        return "Your quiz is being started in the background. You can stay or leave.";
-    }
-};
+// Removed window.onbeforeunload warning
 
 /**
  * Main handler for the Generate Quiz button
