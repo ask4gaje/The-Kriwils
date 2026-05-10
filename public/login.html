@@ -38,16 +38,35 @@
     <script src="js/auth.js"></script>
     <script>
         document.getElementById('doLogin').onclick = async function() {
-            const usn = document.getElementById('username').value;
-            const pwd = document.getElementById('password').value;
+            const usn = document.getElementById('username').value.trim();
+            const pwd = document.getElementById('password').value.trim();
             const errorDiv = document.getElementById('errorMsg');
+            const loginBtn = document.getElementById('doLogin');
 
-            const { data, error } = await loginUser(usn, pwd);
-            if (error) {
-                errorDiv.innerText = error.message;
+            if (!usn || !pwd) {
+                errorDiv.innerText = "Please fill in all fields.";
                 errorDiv.style.display = "block";
-            } else {
-                window.location.href = 'index.html';
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.innerText = "Signing In...";
+            errorDiv.style.display = "none";
+
+            try {
+                const { data, error } = await loginUser(usn, pwd);
+                if (error) {
+                    errorDiv.innerText = error.message;
+                    errorDiv.style.display = "block";
+                } else {
+                    window.location.href = 'index.html';
+                }
+            } catch (err) {
+                errorDiv.innerText = err.message;
+                errorDiv.style.display = "block";
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.innerText = "Sign In";
             }
         };
     </script>

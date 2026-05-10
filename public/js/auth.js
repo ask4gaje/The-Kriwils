@@ -45,9 +45,11 @@ async function getSupabase() {
 const getInternalEmail = (username) => `${username.toLowerCase()}@thekriwils.local`;
 
 async function registerUser(username, password) {
-    if (!supabaseClient) await initSupabase();
+    const client = await getSupabase();
+    if (!client) throw new Error("Could not connect to database. Please refresh.");
+    
     const email = getInternalEmail(username);
-    const { data, error } = await supabaseClient.auth.signUp({
+    const { data, error } = await client.auth.signUp({
         email,
         password,
         options: {
@@ -58,9 +60,11 @@ async function registerUser(username, password) {
 }
 
 async function loginUser(username, password) {
-    if (!supabaseClient) await initSupabase();
+    const client = await getSupabase();
+    if (!client) throw new Error("Could not connect to database. Please refresh.");
+
     const email = getInternalEmail(username);
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
+    const { data, error } = await client.auth.signInWithPassword({
         email,
         password
     });
@@ -68,15 +72,19 @@ async function loginUser(username, password) {
 }
 
 async function logoutUser() {
-    if (!supabaseClient) await initSupabase();
-    const { error } = await supabaseClient.auth.signOut();
-    if (!error) window.location.href = 'login.html';
+    const client = await getSupabase();
+    if (client) {
+        const { error } = await client.auth.signOut();
+        if (!error) window.location.href = 'login.html';
+    } else {
+        window.location.href = 'login.html';
+    }
 }
 
 async function checkSession() {
-    if (!supabaseClient) await initSupabase();
-    if (!supabaseClient) return null;
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    const client = await getSupabase();
+    if (!client) return null;
+    const { data: { session } } = await client.auth.getSession();
     return session;
 }
 

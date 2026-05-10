@@ -38,10 +38,10 @@
     <script src="js/auth.js"></script>
     <script>
         document.getElementById('doRegister').onclick = async function() {
-            console.log('Sign Up button clicked');
-            const usn = document.getElementById('regUsername').value;
-            const pwd = document.getElementById('regPassword').value;
+            const usn = document.getElementById('regUsername').value.trim();
+            const pwd = document.getElementById('regPassword').value.trim();
             const errorDiv = document.getElementById('errorMsg');
+            const regBtn = document.getElementById('doRegister');
 
             if (!usn || !pwd) {
                 errorDiv.innerText = "Please fill in all fields.";
@@ -49,23 +49,27 @@
                 return;
             }
 
+            regBtn.disabled = true;
+            regBtn.innerText = "Creating Account...";
+            errorDiv.style.display = "none";
+
             try {
                 const { data, error } = await registerUser(usn, pwd);
                 if (error) {
-                    console.error('Supabase error:', error);
                     errorDiv.innerText = error.message;
                     errorDiv.style.display = "block";
                 } else {
-                    console.log('User registered:', data);
                     showToast("Registration successful! You can now log in.", 'success');
                     setTimeout(() => {
                         window.location.href = 'login.html';
                     }, 2000);
                 }
             } catch (err) {
-                console.error('Client-side error:', err);
-                errorDiv.innerText = "An unexpected error occurred. Check the console.";
+                errorDiv.innerText = err.message;
                 errorDiv.style.display = "block";
+            } finally {
+                regBtn.disabled = false;
+                regBtn.innerText = "Sign Up";
             }
         };
     </script>
