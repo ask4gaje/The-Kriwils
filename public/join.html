@@ -48,7 +48,7 @@
         </div>
 
         <!-- How it Works Section -->
-        <section class="how-it-works">
+        <section id="how-it-works-section" class="how-it-works">
             <h2>How it Works</h2>
             <div class="steps-grid">
                 <div class="step-card">
@@ -79,13 +79,15 @@
             
             const hostCard = document.getElementById('host-path-card');
             const heroGrid = document.getElementById('hero-grid-container');
+            const howItWorks = document.getElementById('how-it-works-section');
 
             // 1. Dynamic UI adjustment based on session
             if (typeof checkSession === 'function') {
                 const session = await checkSession();
-                if (session && hostCard && heroGrid) {
-                    hostCard.style.display = 'none';
-                    heroGrid.classList.add('single-path');
+                if (session) {
+                    if (hostCard) hostCard.style.display = 'none';
+                    if (heroGrid) heroGrid.classList.add('single-path');
+                    if (howItWorks) howItWorks.style.display = 'none';
                 }
             }
 

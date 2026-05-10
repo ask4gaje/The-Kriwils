@@ -117,6 +117,9 @@ document.getElementById('generateBtn').onclick = async function() {
         </div>
     `;
 
+    // Auto-scroll to results
+    resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
     try {
         let pdfContext = "";
         if (pdfFile) {
