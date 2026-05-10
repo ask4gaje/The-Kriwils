@@ -19,18 +19,53 @@
     </nav>
 
 
-    <main>
-        <section class="quiz-generator">
-            <h1>Join a Quiz</h1>
-            <p>Enter the 6-character code to start playing.</p>
-
-            <div class="generator-form" style="text-align: center; padding: 3rem 2rem;">
-                <div class="form-group" style="max-width: 300px; margin: 0 auto 2rem;">
-                    <label for="joinQuizCode" style="text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-size: 0.75rem;">Enter Quiz Code</label>
-                    <input type="text" id="joinQuizCode" placeholder="KRIWIL" maxlength="6" 
-                           style="font-size: 2rem; text-align: center; font-weight: 800; text-transform: uppercase; font-family: 'Courier New', Courier, monospace; letter-spacing: 0.3rem; border: 2px solid var(--primary-color);">
+    <main style="max-width: 1000px;">
+        <!-- Dual-Path Hero Section -->
+        <div class="hero-grid">
+            <!-- Play Path -->
+            <div class="hero-card">
+                <h2>Play a Quiz 🎮</h2>
+                <p>Have a code from your friend? Enter it below and join the game instantly.</p>
+                
+                <div class="join-input-wrapper">
+                    <label for="joinQuizCode" style="text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-size: 0.75rem; display: block; margin-bottom: 0.5rem; text-align: center;">Quiz Code</label>
+                    <input type="text" id="joinQuizCode" class="join-input-large" placeholder="KRIWIL" maxlength="6">
                 </div>
-                <button id="joinBtn" style="max-width: 300px; margin: 0 auto;">Enter Quiz</button>
+                <button id="joinBtn">Enter Quiz</button>
+            </div>
+
+            <!-- Create Path -->
+            <div class="hero-card" style="border-style: dashed; background: #fdfcfe;">
+                <h2>Host a Quiz 🧠</h2>
+                <p>Want to test your friends? Use our AI to generate a custom quiz in seconds.</p>
+                <ul style="text-align: left; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.5rem; list-style: none;">
+                    <li style="margin-bottom: 0.5rem;">✨ Generate from any topic</li>
+                    <li style="margin-bottom: 0.5rem;">📄 Upload a PDF for kuis material</li>
+                    <li>📊 Track student results & scores</li>
+                </ul>
+                <button id="hostBtn" class="btn-secondary">Start Creating →</button>
+            </div>
+        </div>
+
+        <!-- How it Works Section -->
+        <section class="how-it-works">
+            <h2>How it Works</h2>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h3>Pick a Topic</h3>
+                    <p>Enter any subject or upload a PDF. Gemini AI will read it for you.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h3>AI Generates</h3>
+                    <p>Our AI crafts unique questions, options, and explanations in seconds.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h3>Play & Share</h3>
+                    <p>Get a unique code, share it with others, and see who scores highest!</p>
+                </div>
             </div>
         </section>
     </main>
@@ -40,14 +75,15 @@
         document.addEventListener('DOMContentLoaded', () => {
             const joinBtn = document.getElementById('joinBtn');
             const joinInput = document.getElementById('joinQuizCode');
+            const hostBtn = document.getElementById('hostBtn');
 
+            // Join Logic
             if (joinBtn && joinInput) {
                 joinBtn.onclick = () => {
                     const code = joinInput.value.trim().toUpperCase();
                     if (code.length === 6) {
                         window.location.href = `/play/${code}`;
                     } else {
-                        // showToast is available from auth.js
                         if (typeof showToast === 'function') {
                             showToast("Please enter a valid 6-character code!", 'error');
                         } else {
@@ -58,6 +94,22 @@
 
                 joinInput.onkeypress = (e) => {
                     if (e.key === 'Enter') joinBtn.click();
+                };
+            }
+
+            // Host Logic (Intelligent Redirection)
+            if (hostBtn) {
+                hostBtn.onclick = async () => {
+                    if (typeof checkSession === 'function') {
+                        const session = await checkSession();
+                        if (session) {
+                            window.location.href = 'index.html';
+                        } else {
+                            window.location.href = 'login.html';
+                        }
+                    } else {
+                        window.location.href = 'login.html';
+                    }
                 };
             }
         });
