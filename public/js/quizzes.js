@@ -63,7 +63,10 @@ async function loadMyQuizzes() {
 
             return `
                 <div class="quiz-card" style="animation-delay: ${index * 0.1}s">
-                    <button class="btn-edit" onclick="openEditModal('${quiz.id}')">✏️ Edit</button>
+                    <div class="card-top-actions">
+                        <button class="btn-edit" onclick="openEditModal('${quiz.id}')">✏️ Edit</button>
+                        <button class="btn-utility" onclick="exportToPDF('${quiz.id}', '${quizTitle.replace(/'/g, "\\'")}')">Print</button>
+                    </div>
                     <div class="quiz-card-header">
                         <div class="quiz-card-topic">${quizTitle}</div>
                         <div class="quiz-card-meta">Topic: ${quiz.topic}</div>
@@ -72,7 +75,6 @@ async function loadMyQuizzes() {
                     </div>
                     <div class="quiz-card-actions">
                         <button onclick="showStats('${quiz.id}', '${quizTitle.replace(/'/g, "\\'")}')" class="btn btn-primary">Stats</button>
-                        <button onclick="exportToPDF('${quiz.id}', '${quizTitle.replace(/'/g, "\\'")}')" class="btn btn-primary" style="background: #1f2937; border-color: #1f2937;">🖨️ Print</button>
                         <button onclick="copySpecificLink('${shareLink}')" class="btn btn-secondary">Copy Link</button>
                         <button onclick="deleteQuiz('${quiz.id}')" class="btn btn-danger">Delete</button>
                     </div>

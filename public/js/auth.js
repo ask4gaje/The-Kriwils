@@ -122,20 +122,27 @@ async function renderNavigation() {
 document.addEventListener('DOMContentLoaded', async () => {
     const protectedPaths = ['index.html', 'quizzes.html'];
     // Extract clean path without query params
-    const pathParts = window.location.pathname.split('/').pop().split('?');
+    const fullPath = window.location.pathname;
+    const pathParts = fullPath.split('/').pop().split('?');
     const currentPath = pathParts[0];
 
     // Ensure Supabase is initialized before checking session
     await initSupabase();
 
     checkSession().then(session => {
-        // Handle protection
+        // 1. Handle root redirection for logged-in users
+        if ((fullPath === '/' || fullPath === '') && session) {
+            window.location.href = 'index.html';
+            return;
+        }
+
+        // 2. Handle protection
         if (protectedPaths.includes(currentPath) && !session) {
             window.location.href = 'login.html';
             return;
         }
         
-        // Render Nav
+        // 3. Render Nav
         renderNavigation();
     });
 });
