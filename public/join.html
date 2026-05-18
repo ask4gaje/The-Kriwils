@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Join a Quiz - The Kriwils</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=1.4">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -70,61 +70,70 @@
         </section>
     </main>
 
-    <script src="js/auth.js"></script>
+    <script src="js/auth.js?v=1.4"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            const joinBtn = document.getElementById('joinBtn');
-            const joinInput = document.getElementById('joinQuizCode');
-            const hostBtn = document.getElementById('hostBtn');
-            
-            const hostCard = document.getElementById('host-path-card');
-            const heroGrid = document.getElementById('hero-grid-container');
-            const howItWorks = document.getElementById('how-it-works-section');
+            try {
+                const joinBtn = document.getElementById('joinBtn');
+                const joinInput = document.getElementById('joinQuizCode');
+                const hostBtn = document.getElementById('hostBtn');
+                
+                const hostCard = document.getElementById('host-path-card');
+                const heroGrid = document.getElementById('hero-grid-container');
+                const howItWorks = document.getElementById('how-it-works-section');
 
-            // 1. Dynamic UI adjustment based on session
-            if (typeof checkSession === 'function') {
-                const session = await checkSession();
-                if (session) {
-                    if (hostCard) hostCard.style.display = 'none';
-                    if (heroGrid) heroGrid.classList.add('single-path');
-                    if (howItWorks) howItWorks.style.display = 'none';
-                }
-            }
-
-            // 2. Join Logic
-            if (joinBtn && joinInput) {
-                joinBtn.onclick = () => {
-                    const code = joinInput.value.trim().toUpperCase();
-                    if (code.length === 6) {
-                        window.location.href = `/play/${code}`;
-                    } else {
-                        if (typeof showToast === 'function') {
-                            showToast("Please enter a valid 6-character code!", 'error');
-                        } else {
-                            alert("Please enter a valid 6-character code!");
-                        }
+                // 1. Dynamic UI adjustment based on session
+                if (typeof checkSession === 'function') {
+                    const session = await checkSession();
+                    if (session) {
+                        if (hostCard) hostCard.style.display = 'none';
+                        if (heroGrid) heroGrid.classList.add('single-path');
+                        if (howItWorks) howItWorks.style.display = 'none';
                     }
-                };
+                }
 
-                joinInput.onkeypress = (e) => {
-                    if (e.key === 'Enter') joinBtn.click();
-                };
-            }
-
-            // Host Logic (Intelligent Redirection)
-            if (hostBtn) {
-                hostBtn.onclick = async () => {
-                    if (typeof checkSession === 'function') {
-                        const session = await checkSession();
-                        if (session) {
-                            window.location.href = 'index.html';
+                // 2. Join Logic
+                if (joinBtn && joinInput) {
+                    joinBtn.onclick = () => {
+                        const code = joinInput.value.trim().toUpperCase();
+                        if (code.length === 6) {
+                            window.location.href = `/play/${code}`;
                         } else {
+                            if (typeof showToast === 'function') {
+                                showToast("Please enter a valid 6-character code!", 'error');
+                            } else {
+                                alert("Please enter a valid 6-character code!");
+                            }
+                        }
+                    };
+
+                    joinInput.onkeypress = (e) => {
+                        if (e.key === 'Enter') joinBtn.click();
+                    };
+                }
+
+                // Host Logic (Intelligent Redirection)
+                if (hostBtn) {
+                    hostBtn.onclick = async () => {
+                        try {
+                            if (typeof checkSession === 'function') {
+                                const session = await checkSession();
+                                if (session) {
+                                    window.location.href = 'index.html';
+                                } else {
+                                    window.location.href = 'login.html';
+                                }
+                            } else {
+                                window.location.href = 'login.html';
+                            }
+                        } catch (e) {
+                            console.error("Host button redirect error:", e);
                             window.location.href = 'login.html';
                         }
-                    } else {
-                        window.location.href = 'login.html';
-                    }
-                };
+                    };
+                }
+            } catch (err) {
+                console.error("Critical Join Page Error:", err);
             }
         });
     </script>
