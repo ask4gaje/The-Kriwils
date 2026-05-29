@@ -6,6 +6,8 @@ let playerName = "";
 let currentQuizId = "";
 let userAnswers = []; // Tracks selected option index for each question
 let quizSettings = { is_replayable: true, is_reviewable: true };
+let timeLeft = 0;
+let timerInterval = null;
 
 function showErrorUI(message) {
     const loadingDiv = document.getElementById('loading');
@@ -14,7 +16,7 @@ function showErrorUI(message) {
         <div class="quiz-container" style="text-align: center; max-width: 400px; margin: 0 auto; border-top: 4px solid #ef4444;">
             <div style="font-size: 3.5rem; margin-bottom: 1rem;">🤔</div>
             <h2 style="color: #111827; margin-bottom: 0.75rem;">Oops! Quiz Not Found</h2>
-            <p style="color: var(--text-muted); margin-bottom: 2rem;">${message}</p>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">${escapeHtml(message)}</p>
             <button onclick="window.location.href='/join.html'" style="background: #111827; width: 100%;">Try Another Code</button>
         </div>
     `;
@@ -55,7 +57,8 @@ async function loadQuiz() {
         // Store settings and questions
         quizSettings = { 
             is_replayable: data.is_replayable ?? true, 
-            is_reviewable: data.is_reviewable ?? true 
+            is_reviewable: data.is_reviewable ?? true,
+            time_limit_seconds: data.time_limit_seconds || 0
         };
         currentQuestions = data.questions_json;
 
@@ -118,25 +121,27 @@ function startQuiz() {
 
     document.getElementById('namePrompt').style.display = 'none';
     document.getElementById('quizApp').style.display = 'block';
+    if (quizSettings.time_limit_seconds) {
+        document.getElementById('timerDisplay').style.display = 'block';
+        startTimer();
+    }
     showQuestion();
 }
 
 function showQuestion() {
     isAnswered = false;
+    clearInterval(timerInterval);
     const question = currentQuestions[currentIndex];
-    
-    // Update progress
+
     const progress = ((currentIndex) / currentQuestions.length) * 100;
     document.getElementById('progressFill').style.width = `${progress}%`;
     document.getElementById('questionCounter').innerText = `Question ${currentIndex + 1} of ${currentQuestions.length}`;
 
-    // Set text
     document.getElementById('questionText').innerText = question.question;
-    
-    // Clear and fill options
+
     const grid = document.getElementById('optionsGrid');
     grid.innerHTML = '';
-    
+
     question.options.forEach((opt, index) => {
         const btn = document.createElement('button');
         btn.className = 'option-btn';
@@ -144,13 +149,17 @@ function showQuestion() {
         btn.onclick = () => handleAnswer(index, btn);
         grid.appendChild(btn);
     });
+
+    if (quizSettings.time_limit_seconds) {
+        startTimer();
+    }
 }
 
 function handleAnswer(selectedIndex, btn) {
     if (isAnswered) return;
     isAnswered = true;
+    clearInterval(timerInterval);
 
-    // Track user answer
     userAnswers[currentIndex] = selectedIndex;
 
     const correctIndex = currentQuestions[currentIndex].answer;
@@ -164,14 +173,50 @@ function handleAnswer(selectedIndex, btn) {
         allButtons[correctIndex].classList.add('correct');
     }
 
-    setTimeout(() => {
-        currentIndex++;
-        if (currentIndex < currentQuestions.length) {
-            showQuestion();
-        } else {
-            showResults();
+    setTimeout(() => advanceQuestion(), 1500);
+}
+
+function advanceQuestion() {
+    currentIndex++;
+    if (currentIndex < currentQuestions.length) {
+        showQuestion();
+    } else {
+        showResults();
+    }
+}
+
+function startTimer() {
+    const total = quizSettings.time_limit_seconds;
+    timeLeft = total;
+    const bar = document.getElementById('timerBarFill');
+    bar.style.width = '100%';
+    bar.style.background = 'var(--primary-color)';
+    const startTime = Date.now();
+    timerInterval = setInterval(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        timeLeft = Math.max(0, total - elapsed);
+        const pct = (timeLeft / total) * 100;
+        bar.style.width = `${pct}%`;
+        if (timeLeft <= 5) {
+            bar.style.background = '#ef4444';
         }
-    }, 1500);
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            handleTimeout();
+        }
+    }, 50);
+}
+
+function handleTimeout() {
+    if (isAnswered) return;
+    isAnswered = true;
+    userAnswers[currentIndex] = -1;
+
+    const correctIndex = currentQuestions[currentIndex].answer;
+    const allButtons = document.querySelectorAll('.option-btn');
+    allButtons[correctIndex].classList.add('correct');
+
+    setTimeout(() => advanceQuestion(), 1500);
 }
 
 async function showResults() {
@@ -209,50 +254,23 @@ async function showResults() {
 
     // Save Replay status to local storage
     localStorage.setItem('played_' + currentQuizId, 'true');
+    localStorage.setItem('highlightPlayer_' + currentQuizId, playerName);
 
-    // Save Score to Database (High Score Only)
+    // Save Score via server
     try {
-        const client = await getSupabase();
-        if (!client) throw new Error("Database connection failed");
-
-        // 1. Check for existing score
-        const { data: existing, error: fetchError } = await client
-            .from('quiz_results')
-            .select('id, score')
-            .eq('quiz_id', currentQuizId)
-            .eq('player_name', playerName)
-            .maybeSingle();
-
-        if (fetchError) throw fetchError;
-
-        if (existing) {
-            // 2. Update if higher
-            if (score > existing.score) {
-                const { error: updateError } = await client
-                    .from('quiz_results')
-                    .update({ 
-                        score: score,
-                        created_at: new Date().toISOString() // Update timestamp to newest high score
-                    })
-                    .eq('id', existing.id);
-                if (updateError) throw updateError;
-                console.log("High score updated!");
-            } else {
-                console.log("Existing score is higher or equal. Not updating.");
-            }
-        } else {
-            // 3. New record
-            const { error: insertError } = await client
-                .from('quiz_results')
-                .insert({
-                    quiz_id: currentQuizId,
-                    player_name: playerName,
-                    score: score,
-                    total_questions: currentQuestions.length
-                });
-            if (insertError) throw insertError;
-            console.log("Score saved successfully!");
-        }
+        const response = await fetch('/api/submit-score', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                quiz_id: currentQuizId,
+                player_name: playerName,
+                score: score,
+                total_questions: currentQuestions.length
+            })
+        });
+        const result = await response.json();
+        if (!response.ok) console.warn('Score save:', result.error || result.message);
+        else console.log(result.message);
     } catch (err) {
         console.error("Error saving score:", err);
     }
@@ -271,13 +289,13 @@ function showReview() {
 
         return `
             <div class="review-item">
-                <div class="review-q">${index + 1}. ${q.question}</div>
+                <div class="review-q">${index + 1}. ${escapeHtml(q.question)}</div>
                 <div class="review-answer-box ${isCorrect ? 'correct' : 'wrong'}">
-                    <strong>Your Answer:</strong> ${userAnsText} 
-                    ${!isCorrect ? `<br><strong>Correct Answer:</strong> ${correctAnsText}` : ''}
+                    <strong>Your Answer:</strong> ${escapeHtml(userAnsText)} 
+                    ${!isCorrect ? `<br><strong>Correct Answer:</strong> ${escapeHtml(correctAnsText)}` : ''}
                 </div>
                 <div class="review-explanation">
-                    <strong>Explanation:</strong> ${q.explanation || 'No explanation available.'}
+                    <strong>Explanation:</strong> ${escapeHtml(q.explanation || 'No explanation available.')}
                 </div>
             </div>
         `;

@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
 </head>
 <body>
     <nav>
@@ -22,9 +22,14 @@
             <h2>Create Account</h2>
             <p>Join The Kriwils today</p>
             <div id="errorMsg" style="color: #dc2626; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
+            <div id="successMsg" style="color: #059669; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
             <div class="form-group">
-                <label for="regUsername">Username</label>
-                <input type="text" id="regUsername" placeholder="Choose a username">
+                <label for="regEmail">Email</label>
+                <input type="email" id="regEmail" placeholder="you@example.com">
+            </div>
+            <div class="form-group">
+                <label for="regDisplayName">Display Name (optional)</label>
+                <input type="text" id="regDisplayName" placeholder="How others will see you">
             </div>
             <div class="form-group">
                 <label for="regPassword">Password</label>
@@ -38,13 +43,15 @@
     <script src="js/auth.js?v=1.4"></script>
     <script>
         document.getElementById('doRegister').onclick = async function() {
-            const usn = document.getElementById('regUsername').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const displayName = document.getElementById('regDisplayName').value.trim();
             const pwd = document.getElementById('regPassword').value.trim();
             const errorDiv = document.getElementById('errorMsg');
+            const successDiv = document.getElementById('successMsg');
             const regBtn = document.getElementById('doRegister');
 
-            if (!usn || !pwd) {
-                errorDiv.innerText = "Please fill in all fields.";
+            if (!email || !pwd) {
+                errorDiv.innerText = "Email and password are required.";
                 errorDiv.style.display = "block";
                 return;
             }
@@ -52,14 +59,18 @@
             regBtn.disabled = true;
             regBtn.innerText = "Creating Account...";
             errorDiv.style.display = "none";
+            successDiv.style.display = "none";
 
             try {
-                const { data, error } = await registerUser(usn, pwd);
+                const { data, error } = await registerUser(email, pwd, displayName);
                 if (error) {
                     errorDiv.innerText = error.message;
                     errorDiv.style.display = "block";
                 } else {
-                    showToast("Registration successful! You can now log in.", 'success');
+                    successDiv.innerText = data.user?.identities?.length === 0
+                        ? "Account created! Check your email for a confirmation link, then sign in."
+                        : "Account created! You can now log in.";
+                    successDiv.style.display = "block";
                     setTimeout(() => {
                         window.location.href = 'login.html';
                     }, 2000);

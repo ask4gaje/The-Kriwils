@@ -83,7 +83,7 @@ function showPendingUI(title) {
                 <div class="spinner" style="border-color: #10b981; border-top-color: transparent; margin-bottom: 1rem;"></div>
                 <h3 style="color: #065f46; margin-bottom: 0.5rem;">🚀 Background Generation Started!</h3>
                 <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1.5rem;">
-                    We are crafting <strong>${title}</strong> right now. 
+                    We are crafting <strong>${escapeHtml(title)}</strong> right now. 
                     You can safely leave this page or stay here.
                 </p>
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
@@ -124,12 +124,12 @@ async function pollQuizStatus(quizId, title) {
                 resultsDiv.innerHTML = `
                     <div style="background: #ecfdf5; padding: 2rem; border-radius: 1rem; border: 1px solid #10b981; margin-top: 2rem; text-align: center;">
                         <h3 style="color: #065f46; margin-bottom: 0.5rem;">✨ Quiz Generated Successfully!</h3>
-                        <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1.5rem;">Your quiz <strong>${title}</strong> is ready.</p>
+                        <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1.5rem;">Your quiz <strong>${escapeHtml(title)}</strong> is ready.</p>
                         
                         <div style="background: white; padding: 1.5rem; border-radius: 0.75rem; border: 2px dashed #10b981; margin-bottom: 1.5rem; display: inline-block; min-width: 200px;">
                             <p style="font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;">Quiz Code</p>
                             <div style="font-size: 2.5rem; font-weight: 800; color: #059669; font-family: 'Courier New', Courier, monospace; letter-spacing: 0.2rem;">
-                                ${quiz.short_code}
+                                ${escapeHtml(quiz.short_code)}
                             </div>
                         </div>
 
@@ -210,7 +210,7 @@ async function handleGenerateQuiz() {
     resultsDiv.innerHTML = `
         <div class="loading-wrapper">
             <div class="spinner"></div>
-            <p id="loadingStatus">Initializing background generation for <strong>${title}</strong>...</p>
+            <p id="loadingStatus">Initializing background generation for <strong>${escapeHtml(title)}</strong>...</p>
         </div>
     `;
 
@@ -234,6 +234,7 @@ async function handleGenerateQuiz() {
                 topic,
                 difficulty,
                 count,
+                timeLimit: parseInt(document.getElementById('quizTimeLimit').value) || 0,
                 isReplayable,
                 isReviewable,
                 pdfContext

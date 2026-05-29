@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <style>
         .quiz-container {
@@ -125,6 +125,11 @@
                 <div id="progressFill"></div>
             </div>
             <p id="questionCounter" style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color); margin-bottom: 0.5rem;"></p>
+            <div id="timerDisplay" style="display: none; margin-bottom: 1rem;">
+                <div class="timer-bar">
+                    <div id="timerBarFill"></div>
+                </div>
+            </div>
             <div id="questionArea">
                 <h2 id="questionText" class="question-text"></h2>
                 <div id="optionsGrid" class="options-grid"></div>

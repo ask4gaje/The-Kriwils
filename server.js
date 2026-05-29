@@ -35,7 +35,10 @@ const MIME_TYPES = {
 function getBody(req) {
     return new Promise((resolve, reject) => {
         let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('data', chunk => {
+            body += chunk.toString();
+            if (body.length > 5_000_000) reject(new Error('Request body too large'));
+        });
         req.on('end', () => {
             try {
                 resolve(JSON.parse(body));
@@ -44,6 +47,16 @@ function getBody(req) {
             }
         });
     });
+}
+
+function sanitize(str) {
+    if (!str) return '';
+    return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+}
+
+function getAuthHeader(req) {
+    const auth = req.headers['authorization'];
+    return (auth && auth.startsWith('Bearer ')) ? auth.slice(7) : null;
 }
 
 /**
@@ -119,8 +132,36 @@ async function supabaseAdmin(method, path, body = null) {
 }
 
 function generateShortCode() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
+    return require('crypto').randomBytes(3).toString('hex').toUpperCase();
 }
+
+// --- In-Memory Rate Limiter ---
+
+const rateLimitMap = new Map();
+const RATE_WINDOW = 24 * 60 * 60 * 1000;
+const RATE_MAX = 100;
+
+function checkRateLimit(userId) {
+    const now = Date.now();
+    let timestamps = rateLimitMap.get(userId) || [];
+    timestamps = timestamps.filter(ts => now - ts < RATE_WINDOW);
+    if (timestamps.length >= RATE_MAX) {
+        const retryAfter = Math.ceil((timestamps[0] + RATE_WINDOW - now) / 1000);
+        return { allowed: false, retryAfter };
+    }
+    timestamps.push(now);
+    rateLimitMap.set(userId, timestamps);
+    return { allowed: true };
+}
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, ts] of rateLimitMap) {
+        const valid = ts.filter(t => now - t < RATE_WINDOW);
+        if (valid.length === 0) rateLimitMap.delete(key);
+        else rateLimitMap.set(key, valid);
+    }
+}, 60 * 60 * 1000);
 
 // --- Background Job Logic ---
 
@@ -129,9 +170,12 @@ function generateShortCode() {
  */
 async function checkAiAvailability(apiKey) {
     const model = 'gemini-2.5-flash';
-    const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
     try {
-        const result = await makeRequest(testUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, {
+        const result = await makeRequest(testUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }
+        }, {
             contents: [{ parts: [{ text: "hi" }] }],
             generationConfig: { maxOutputTokens: 1 }
         });
@@ -163,20 +207,27 @@ async function processBackgroundQuiz(quizId, userId, payload) {
             console.log(`[Background] Attempting with model: ${model}...`);
             
             // 1. Prepare Prompt
-            let prompt = `Generate a quiz about "${topic}" with ${difficulty} difficulty. 
-            Return strictly a JSON array of ${count} objects. 
-            All content MUST be in Indonesian.
-            Format: [{"question": "...", "options": ["...", "..."], "answer": index, "explanation": "..."}]`;
+            const sTopic = sanitize(topic);
+            let prompt = `Kamu adalah pembuat kuis. Buat kuis berdasarkan topik yang diberikan.
+Return STRICTLY a JSON array of ${count} objects.
+Semua konten HARUS dalam Bahasa Indonesia.
+Difficulty: ${difficulty}.
+
+<user_topic>${sTopic}</user_topic>
+
+Format: [{"question": "...", "options": ["...", "..."], "answer": index, "explanation": "..."}]
+Jangan sertakan teks apapun di luar JSON array.`;
 
             if (pdfContext) {
-                prompt = `Materi: ${pdfContext.substring(0, 15000)}\n\nBuat kuis ${count} soal tentang "${topic || 'materi tersebut'}" (${difficulty}) dalam format JSON array Bahasa Indonesia.`;
+                const sPdf = sanitize(pdfContext).substring(0, 15000);
+                prompt = `Materi:\n${sPdf}\n\nBuat kuis ${count} soal berdasarkan materi di atas tentang "${sTopic}" (${difficulty}) dalam format JSON array Bahasa Indonesia.`;
             }
 
             // 2. Call Gemini
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
             const geminiResult = await makeRequest(
                 apiUrl,
-                { method: 'POST', headers: { 'Content-Type': 'application/json' } },
+                { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey } },
                 { contents: [{ parts: [{ text: prompt }] }] }
             );
 
@@ -219,8 +270,12 @@ async function processBackgroundQuiz(quizId, userId, payload) {
 
 // --- Main Server ---
 
-http.createServer(async (req, res) => {
+const server = http.createServer(async (req, res) => {
     let urlPath = req.url.split('?')[0];
+
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
     // API: Public Config (Hiding keys from frontend code)
     if (urlPath === '/api/config' && req.method === 'GET') {
@@ -233,20 +288,26 @@ http.createServer(async (req, res) => {
 
     // DEBUG: List Gemini Models
     if (urlPath === '/api/list-models' && req.method === 'GET') {
-        const apiKey = process.env.GEMINI_API_KEY;
-        const testUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-        
-        https.get(testUrl, (apiRes) => {
-            let data = '';
-            apiRes.on('data', d => data += d);
-            apiRes.on('end', () => {
-                res.writeHead(apiRes.statusCode, { 'Content-Type': 'application/json' });
-                res.end(data);
+        try {
+            const jwt = getAuthHeader(req);
+            if (!jwt) { res.writeHead(401); return res.end(JSON.stringify({ error: 'Missing Authorization header' })); }
+            await verifyUser(jwt);
+            const apiKey = process.env.GEMINI_API_KEY;
+            const testUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
+            makeRequest(testUrl, { method: 'GET', headers: { 'x-goog-api-key': apiKey } }).then(result => {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(result.data));
+            }).catch(e => {
+                res.writeHead(500);
+                res.end(JSON.stringify({ error: e.message }));
             });
-        }).on('error', (e) => {
-            res.writeHead(500);
-            res.end(JSON.stringify({ error: e.message }));
-        });
+        } catch (err) {
+            const status = err.message.includes('Unauthorized') ? 401 : 500;
+            const msg = status === 401 ? err.message : 'An internal error occurred';
+            if (status === 500) console.error('[API Error]', err);
+            res.writeHead(status);
+            return res.end(JSON.stringify({ error: msg }));
+        }
         return;
     }
 
@@ -256,6 +317,23 @@ http.createServer(async (req, res) => {
             const body = await getBody(req);
             const user = await verifyUser(body.jwt);
             const userId = user.id;
+
+            const rateCheck = checkRateLimit(userId);
+            if (!rateCheck.allowed) {
+                res.writeHead(429, { 'Retry-After': String(rateCheck.retryAfter) });
+                return res.end(JSON.stringify({
+                    error: `Rate limit reached (${RATE_MAX} per day). Try again in ${Math.ceil(rateCheck.retryAfter / 3600)} hour(s).`
+                }));
+            }
+
+            if (body.topic && body.topic.length > 200) {
+                res.writeHead(400);
+                return res.end(JSON.stringify({ error: 'Topic too long (max 200 characters).' }));
+            }
+            if (body.title && body.title.length > 200) {
+                res.writeHead(400);
+                return res.end(JSON.stringify({ error: 'Title too long (max 200 characters).' }));
+            }
 
             // NEW: Pre-check AI availability before sending success toast
             console.log('[API] Checking AI Availability before accepting...');
@@ -282,6 +360,7 @@ http.createServer(async (req, res) => {
                 questions_json: [], 
                 is_replayable: body.isReplayable,
                 is_reviewable: body.isReviewable,
+                time_limit_seconds: body.timeLimit || null,
                 short_code: generateShortCode(),
                 status: 'pending'
             });
@@ -301,16 +380,149 @@ http.createServer(async (req, res) => {
             processBackgroundQuiz(quizRecord.id, userId, body);
 
         } catch (err) {
-            res.writeHead(err.message.includes('Unauthorized') ? 401 : 500);
-            res.end(JSON.stringify({ error: err.message }));
+            const status = err.message.includes('Unauthorized') ? 401 : 500;
+            const msg = status === 401 ? err.message : 'An internal error occurred';
+            if (status === 500) console.error('[API Error]', err);
+            res.writeHead(status);
+            return res.end(JSON.stringify({ error: msg }));
         }
         return;
     }
 
-    // Proxy API (Legacy)
-    if (urlPath === '/api/generate-quiz' && req.method === 'POST') {
-        res.writeHead(410); 
-        return res.end(JSON.stringify({ error: 'Your browser is running an old version of the app. Please refresh the page (Ctrl+F5).' }));
+    // API: Submit Score
+    if (urlPath === '/api/submit-score' && req.method === 'POST') {
+        try {
+            const body = await getBody(req);
+            if (!body.quiz_id || !body.player_name || body.score === undefined || !body.total_questions) {
+                res.writeHead(400);
+                return res.end(JSON.stringify({ error: 'Missing required fields' }));
+            }
+            if (body.score < 0 || body.score > body.total_questions) {
+                res.writeHead(400);
+                return res.end(JSON.stringify({ error: 'Invalid score' }));
+            }
+
+            const quizResult = await supabaseAdmin('GET', `quizzes?id=eq.${body.quiz_id}&select=id,is_replayable,questions_json`);
+            if (!quizResult.data || quizResult.data.length === 0) {
+                res.writeHead(404);
+                return res.end(JSON.stringify({ error: 'Quiz not found' }));
+            }
+            const quiz = quizResult.data[0];
+            if (body.total_questions !== quiz.questions_json.length) {
+                res.writeHead(400);
+                return res.end(JSON.stringify({ error: 'Question count mismatch' }));
+            }
+
+            if (!quiz.is_replayable) {
+                const existing = await supabaseAdmin('GET', `quiz_results?quiz_id=eq.${body.quiz_id}&player_name=eq.${encodeURIComponent(body.player_name)}`);
+                if (existing.data && existing.data.length > 0) {
+                    res.writeHead(403);
+                    return res.end(JSON.stringify({ error: 'You have already played this quiz.' }));
+                }
+            }
+
+            const existingScore = await supabaseAdmin('GET', `quiz_results?quiz_id=eq.${body.quiz_id}&player_name=eq.${encodeURIComponent(body.player_name)}&select=id,score`);
+            if (existingScore.data && existingScore.data.length > 0) {
+                const prev = existingScore.data[0];
+                if (body.score > prev.score) {
+                    await supabaseAdmin('PATCH', `quiz_results?id=eq.${prev.id}`, {
+                        score: body.score,
+                        created_at: new Date().toISOString()
+                    });
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ message: 'High score updated!' }));
+                }
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ message: 'Score not higher than previous best.' }));
+            }
+
+            await supabaseAdmin('POST', 'quiz_results', {
+                quiz_id: body.quiz_id,
+                player_name: body.player_name,
+                score: body.score,
+                total_questions: body.total_questions
+            });
+            res.writeHead(201, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ message: 'Score saved!' }));
+        } catch (err) {
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: 'An internal error occurred' }));
+        }
+    }
+
+    // API: Dashboard — List user's quizzes
+    if (urlPath === '/api/my-quizzes' && req.method === 'GET') {
+        try {
+            const jwt = getAuthHeader(req);
+            if (!jwt) { res.writeHead(401); return res.end(JSON.stringify({ error: 'Missing Authorization header' })); }
+            const user = await verifyUser(jwt);
+            const result = await supabaseAdmin('GET', `quizzes?creator_id=eq.${user.id}&order=created_at.desc`);
+            if (result.status >= 400) throw new Error(result.data?.message || 'DB Error');
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ quizzes: result.data || [] }));
+        } catch (err) {
+            const status = err.message.includes('Unauthorized') ? 401 : 500;
+            const msg = status === 401 ? err.message : 'An internal error occurred';
+            if (status === 500) console.error('[API Error]', err);
+            res.writeHead(status);
+            return res.end(JSON.stringify({ error: msg }));
+        }
+    }
+
+    // API: Single Quiz CRUD
+    if (urlPath.startsWith('/api/quiz/') && urlPath.split('/').length === 4) {
+        const quizId = urlPath.split('/api/quiz/')[1];
+        try {
+            const jwt = getAuthHeader(req);
+            if (!jwt) { res.writeHead(401); return res.end(JSON.stringify({ error: 'Missing Authorization header' })); }
+            const user = await verifyUser(jwt);
+
+            const fetchResult = await supabaseAdmin('GET', `quizzes?id=eq.${quizId}`);
+            if (!fetchResult.data || fetchResult.data.length === 0) {
+                res.writeHead(404);
+                return res.end(JSON.stringify({ error: 'Quiz not found' }));
+            }
+            const quiz = fetchResult.data[0];
+            if (quiz.creator_id !== user.id) {
+                res.writeHead(403);
+                return res.end(JSON.stringify({ error: 'You do not own this quiz' }));
+            }
+
+            if (req.method === 'GET') {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ quiz }));
+            }
+
+            if (req.method === 'PATCH') {
+                const body = await getBody(req);
+                const allowed = {};
+                if (body.title !== undefined) allowed.title = body.title;
+                if (body.is_replayable !== undefined) allowed.is_replayable = body.is_replayable;
+                if (body.is_reviewable !== undefined) allowed.is_reviewable = body.is_reviewable;
+                if (body.time_limit_seconds !== undefined) allowed.time_limit_seconds = body.time_limit_seconds;
+                if (body.questions_json !== undefined) allowed.questions_json = body.questions_json;
+                const updateResult = await supabaseAdmin('PATCH', `quizzes?id=eq.${quizId}`, allowed);
+                if (updateResult.status >= 400) throw new Error(updateResult.data?.message || 'Update failed');
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ quiz: updateResult.data?.[0] || quiz }));
+            }
+
+            if (req.method === 'DELETE') {
+                await supabaseAdmin('DELETE', `quiz_results?quiz_id=eq.${quizId}`);
+                await supabaseAdmin('DELETE', `quizzes?id=eq.${quizId}`);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ message: 'Quiz deleted' }));
+            }
+
+            res.writeHead(405);
+            return res.end(JSON.stringify({ error: 'Method not allowed' }));
+        } catch (err) {
+            const status = err.message.includes('Unauthorized') ? 401 : 500;
+            const msg = status === 401 ? err.message : 'An internal error occurred';
+            if (status === 500) console.error('[API Error]', err);
+            res.writeHead(status);
+            return res.end(JSON.stringify({ error: msg }));
+        }
     }
 
     // Pretty URL handling
@@ -331,7 +543,9 @@ http.createServer(async (req, res) => {
             res.end(content, 'utf-8');
         }
     });
-}).listen(PORT, () => {
+});
+server.timeout = 30000;
+server.listen(PORT, () => {
     console.log(`\n🚀 Server running at http://localhost:${PORT}/`);
     
     // Startup Health Check

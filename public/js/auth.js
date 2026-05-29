@@ -41,29 +41,24 @@ async function getSupabase() {
     return await initSupabase();
 }
 
-// Helper to convert username to internal email
-const getInternalEmail = (username) => `${username.toLowerCase()}@thekriwils.local`;
-
-async function registerUser(username, password) {
+async function registerUser(email, password, displayName) {
     const client = await getSupabase();
     if (!client) throw new Error("Could not connect to database. Please refresh.");
-    
-    const email = getInternalEmail(username);
+
     const { data, error } = await client.auth.signUp({
         email,
         password,
         options: {
-            data: { username: username }
+            data: { display_name: displayName || email }
         }
     });
     return { data, error };
 }
 
-async function loginUser(username, password) {
+async function loginUser(email, password) {
     const client = await getSupabase();
     if (!client) throw new Error("Could not connect to database. Please refresh.");
 
-    const email = getInternalEmail(username);
     const { data, error } = await client.auth.signInWithPassword({
         email,
         password
@@ -79,6 +74,32 @@ async function logoutUser() {
     } else {
         window.location.href = 'login.html';
     }
+}
+
+async function changePassword(currentEmail, currentPassword, newPassword) {
+    const client = await getSupabase();
+    if (!client) throw new Error("Could not connect to database. Please refresh.");
+
+    const { error: signInError } = await client.auth.signInWithPassword({
+        email: currentEmail,
+        password: currentPassword
+    });
+    if (signInError) throw signInError;
+
+    const { error } = await client.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    return { success: true };
+}
+
+async function resetPassword(email) {
+    const client = await getSupabase();
+    if (!client) throw new Error("Could not connect to database. Please refresh.");
+
+    const { error } = await client.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login.html`
+    });
+    if (error) throw error;
+    return { success: true };
 }
 
 async function checkSession() {
@@ -106,6 +127,7 @@ async function renderNavigation() {
             <li><a href="join.html" class="${currentPage === 'join.html' ? 'active' : ''}">Play</a></li>
             <li><a href="quizzes.html" class="${currentPage === 'quizzes.html' ? 'active' : ''}">Quiz</a></li>
             <li><a href="about.html" class="${currentPage === 'about.html' ? 'active' : ''}">About</a></li>
+            <li><a href="changepassword.html" class="${currentPage === 'changepassword.html' ? 'active' : ''}" style="font-size: 0.875rem;">Password</a></li>
             <li><button onclick="logoutUser()" class="btn-logout">Logout</button></li>
         `;
     } else {
@@ -194,4 +216,10 @@ function showToast(message, type = 'info') {
             setTimeout(() => toast.remove(), 300);
         }
     }, 4000);
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
 }

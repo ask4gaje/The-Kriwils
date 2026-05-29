@@ -1,6 +1,25 @@
 let currentEditQuizId = "";
 let currentEditQuestions = [];
 
+async function api(method, path, body = null) {
+    const session = await checkSession();
+    if (!session) throw new Error('Session expired. Please login again.');
+
+    const opts = {
+        method,
+        headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+        }
+    };
+    if (body) opts.body = JSON.stringify(body);
+
+    const res = await fetch(path, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Server error (${res.status})`);
+    return data;
+}
+
 /**
  * Fetches the current user's quizzes from Supabase and renders them.
  */
@@ -9,13 +28,6 @@ async function loadMyQuizzes() {
     if (!listContainer) return;
 
     try {
-        const session = await checkSession();
-        if (!session) return;
-
-        const client = await getSupabase();
-        if (!client) throw new Error("Database connection failed");
-
-        // Note: We don't clear the container if it's a background refresh to avoid flickering
         if (listContainer.innerHTML.includes('spinner') && !listContainer.querySelector('.quiz-card')) {
              listContainer.innerHTML = `
                 <div class="loading-wrapper" style="grid-column: 1/-1;">
@@ -25,13 +37,8 @@ async function loadMyQuizzes() {
             `;
         }
 
-        const { data: quizzes, error } = await client
-            .from('quizzes')
-            .select('*')
-            .eq('creator_id', session.user.id)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
+        const data = await api('GET', '/api/my-quizzes');
+        const quizzes = data.quizzes;
 
         if (!quizzes || quizzes.length === 0) {
             listContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted); grid-column: 1/-1;">You haven\'t generated any quizzes yet.</p>';
@@ -50,7 +57,7 @@ async function loadMyQuizzes() {
                 return `
                     <div class="quiz-card" style="animation-delay: ${index * 0.1}s; border-style: dashed; opacity: 0.8;">
                         <div class="quiz-card-header">
-                            <div class="quiz-card-topic" style="color: var(--primary-color)">⏳ Generating: ${quizTitle}</div>
+                            <div class="quiz-card-topic" style="color: var(--primary-color)">⏳ Generating: ${escapeHtml(quizTitle)}</div>
                             <div class="quiz-card-meta">AI is writing your questions...</div>
                             <div class="spinner" style="width: 20px; height: 20px; border-width: 2px; margin: 1rem 0 0 0;"></div>
                         </div>
@@ -65,13 +72,13 @@ async function loadMyQuizzes() {
                 <div class="quiz-card" style="animation-delay: ${index * 0.1}s">
                     <div class="card-top-actions">
                         <button class="btn-edit" onclick="openEditModal('${quiz.id}')">✏️ Edit</button>
-                        <button class="btn-utility" onclick="exportToPDF('${quiz.id}', '${quizTitle.replace(/'/g, "\\'")}')">Print</button>
+                        <button class="btn-utility" onclick="exportToPDF('${quiz.id}')">Print</button>
                     </div>
                     <div class="quiz-card-header">
-                        <div class="quiz-card-topic">${quizTitle}</div>
-                        <div class="quiz-card-meta">Topic: ${quiz.topic}</div>
-                        ${quiz.short_code ? `<div class="quiz-card-meta">Code: ${quiz.short_code}</div>` : ''}
-                        <div class="quiz-card-meta">${quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)} • ${questionCount} Questions</div>
+                        <div class="quiz-card-topic">${escapeHtml(quizTitle)}</div>
+                        <div class="quiz-card-meta">Topic: ${escapeHtml(quiz.topic)}</div>
+                        ${quiz.short_code ? `<div class="quiz-card-meta">Code: ${escapeHtml(quiz.short_code)}</div>` : ''}
+                        <div class="quiz-card-meta">${quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)} • ${questionCount} Questions${quiz.time_limit_seconds ? ' • ' + quiz.time_limit_seconds + 's/q' : ''}</div>
                     </div>
                     <div class="quiz-card-actions">
                         <button onclick="showStats('${quiz.id}', '${quizTitle.replace(/'/g, "\\'")}')" class="btn btn-primary">Stats</button>
@@ -102,18 +109,9 @@ async function deleteQuiz(quizId) {
     }
 
     try {
-        const client = await getSupabase();
-        if (!client) throw new Error("Database connection failed");
-
-        const { error } = await client
-            .from('quizzes')
-            .delete()
-            .eq('id', quizId);
-
-        if (error) throw error;
-        
+        await api('DELETE', '/api/quiz/' + quizId);
         showToast("Quiz deleted successfully.", 'success');
-        loadMyQuizzes(); // Refresh the list
+        loadMyQuizzes();
     } catch (err) {
         console.error('Error deleting quiz:', err);
         showToast(`Failed to delete quiz: ${err.message}`, 'error');
@@ -134,16 +132,8 @@ async function openEditModal(quizId) {
     modal.style.display = 'flex';
 
     try {
-        const client = await getSupabase();
-        if (!client) throw new Error("Database connection failed");
-
-        const { data: quiz, error } = await client
-            .from('quizzes')
-            .select('*')
-            .eq('id', quizId)
-            .single();
-
-        if (error) throw error;
+        const data = await api('GET', '/api/quiz/' + quizId);
+        const quiz = data.quiz;
 
         currentEditQuestions = quiz.questions_json;
         saveBtn.disabled = false;
@@ -162,6 +152,16 @@ async function openEditModal(quizId) {
                     <label>
                         <input type="checkbox" id="editIsReviewable" ${quiz.is_reviewable ? 'checked' : ''}> Allow students to review answers
                     </label>
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label>Time per Question</label>
+                    <select id="editTimeLimit">
+                        <option value="0" ${!quiz.time_limit_seconds ? 'selected' : ''}>No Limit</option>
+                        <option value="10" ${quiz.time_limit_seconds == 10 ? 'selected' : ''}>10 seconds</option>
+                        <option value="15" ${quiz.time_limit_seconds == 15 ? 'selected' : ''}>15 seconds</option>
+                        <option value="30" ${quiz.time_limit_seconds == 30 ? 'selected' : ''}>30 seconds</option>
+                        <option value="60" ${quiz.time_limit_seconds == 60 ? 'selected' : ''}>60 seconds</option>
+                    </select>
                 </div>
             </div>
         `;
@@ -211,6 +211,7 @@ async function saveQuizEdits() {
     const updatedTitle = document.getElementById('editQuizTitle').value.trim();
     const updatedIsReplayable = document.getElementById('editIsReplayable').checked;
     const updatedIsReviewable = document.getElementById('editIsReviewable').checked;
+    const updatedTimeLimit = parseInt(document.getElementById('editTimeLimit').value) || 0;
     const updatedQuestions = [];
 
     if (!updatedTitle) {
@@ -222,9 +223,6 @@ async function saveQuizEdits() {
     saveBtn.innerText = "Saving...";
 
     try {
-        const client = await getSupabase();
-        if (!client) throw new Error("Database connection failed");
-
         blocks.forEach(block => {
             const question = block.querySelector('.edit-q-text').value.trim();
             const explanation = block.querySelector('.edit-explanation').value.trim();
@@ -238,17 +236,13 @@ async function saveQuizEdits() {
             updatedQuestions.push({ question, options, answer, explanation });
         });
 
-        const { error } = await client
-            .from('quizzes')
-            .update({ 
-                title: updatedTitle,
-                is_replayable: updatedIsReplayable,
-                is_reviewable: updatedIsReviewable,
-                questions_json: updatedQuestions 
-            })
-            .eq('id', currentEditQuizId);
-
-        if (error) throw error;
+        await api('PATCH', '/api/quiz/' + currentEditQuizId, {
+            title: updatedTitle,
+            is_replayable: updatedIsReplayable,
+            is_reviewable: updatedIsReviewable,
+            time_limit_seconds: updatedTimeLimit || null,
+            questions_json: updatedQuestions
+        });
 
         showToast("Quiz updated successfully!", 'success');
         closeEditModal();
@@ -267,15 +261,29 @@ function closeEditModal() {
     document.getElementById('editQuizModal').style.display = 'none';
 }
 
+function timeAgo(date) {
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(date).toLocaleDateString('en', { day: 'numeric', month: 'short' });
+}
+
+const RESULTS_PER_PAGE = 20;
+
 /**
  * Shows the Top 5 Leaderboard or all results for a specific quiz.
  */
-async function showStats(quizId, topic, viewAll = false) {
+async function showStats(quizId, topic, viewAll = false, page = 1) {
     const modal = document.getElementById('statsModal');
     const container = document.getElementById('statsContainer');
-    const title = document.getElementById('modalTitle');
+    const modalTitle = document.getElementById('modalTitle');
 
-    title.innerText = viewAll ? `All Scores: ${topic}` : `Top 5 Leaderboard: ${topic}`;
+    modalTitle.innerText = viewAll ? `All Scores: ${topic}` : `Top 5 Leaderboard: ${topic}`;
     container.innerHTML = '<p style="text-align: center;">Loading results...</p>';
     modal.style.display = 'flex';
 
@@ -283,59 +291,120 @@ async function showStats(quizId, topic, viewAll = false) {
         const client = await getSupabase();
         if (!client) throw new Error("Database connection failed");
 
-        let query = client
+        // Summary query
+        const { data: allData } = await client
             .from('quiz_results')
-            .select('*')
+            .select('score, total_questions')
             .eq('quiz_id', quizId);
-        
+
+        const totalAttempts = allData ? allData.length : 0;
+        let summaryHtml = '';
+        if (allData && totalAttempts > 0) {
+            const avgPct = Math.round(allData.reduce((s, r) => s + (r.score / r.total_questions) * 100, 0) / totalAttempts);
+            const maxPct = Math.round(Math.max(...allData.map(r => (r.score / r.total_questions) * 100)));
+            summaryHtml = `<div class="stats-summary">
+                <div class="stat-tile">
+                    <span class="stat-value">${totalAttempts}</span>
+                    <span class="stat-label">attempts</span>
+                </div>
+                <div class="stat-tile">
+                    <span class="stat-value">${avgPct}%</span>
+                    <span class="stat-label">average</span>
+                </div>
+                <div class="stat-tile">
+                    <span class="stat-value">${maxPct}%</span>
+                    <span class="stat-label">highest</span>
+                </div>
+            </div>`;
+        }
+
+        // Main query
+        let query = client.from('quiz_results').select('*').eq('quiz_id', quizId);
+
         if (viewAll) {
-            // All results newest first
-            query = query.order('created_at', { ascending: false });
+            const from = (page - 1) * RESULTS_PER_PAGE;
+            const to = from + RESULTS_PER_PAGE - 1;
+            query = query.order('created_at', { ascending: false }).range(from, to);
         } else {
-            // Top 5 by score
             query = query.order('score', { ascending: false })
                          .order('created_at', { ascending: true })
                          .limit(5);
         }
 
         const { data: results, error } = await query;
-
         if (error) throw error;
 
-        const toggleBtnHtml = `
-            <button onclick="showStats('${quizId}', '${topic.replace(/'/g, "\\'")}', ${!viewAll})" class="btn-secondary" style="margin-bottom: 1.5rem; width: auto; font-size: 0.8125rem; padding: 0.5rem 1rem;">
-                ${viewAll ? '← Show Top 5 Leaderboard' : 'Show All Scores (By Time) →'}
-            </button>
-        `;
+        const escapedTopic = topic.replace(/'/g, "\\'");
 
         if (!results || results.length === 0) {
             container.innerHTML = `
-                ${toggleBtnHtml}
-                <p style="text-align: center; color: var(--text-muted); padding: 2rem;">No one has played this quiz yet.</p>
+                <div class="stats-empty">
+                    <div style="font-size: 3rem; margin-bottom: 0.75rem;">📊</div>
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">No one has played this quiz yet.</p>
+                    <p style="font-size: 0.8125rem; color: var(--text-muted);">Share the quiz code to get started!</p>
+                </div>
             `;
             return;
         }
 
+        const highlightName = localStorage.getItem('highlightPlayer_' + quizId) || '';
+
+        function scoreClass(pct) {
+            if (pct >= 80) return 'score-high';
+            if (pct >= 50) return 'score-mid';
+            return 'score-low';
+        }
+
+        const tableRows = results.map((res, index) => {
+            const pct = Math.round((res.score / res.total_questions) * 100);
+            const isHighlighted = highlightName && res.player_name.toLowerCase() === highlightName.toLowerCase();
+
+            let rankCell;
+            if (viewAll) {
+                rankCell = timeAgo(res.created_at);
+            } else {
+                const rankNum = index + 1;
+                rankCell = `<strong>#${rankNum}</strong>`;
+            }
+
+            return `
+                <tr${isHighlighted ? ' class="highlight"' : ''}>
+                    <td class="stats-rank">${rankCell}</td>
+                    <td><strong>${escapeHtml(res.player_name)}</strong></td>
+                    <td class="stats-score ${scoreClass(pct)}">${pct}%</td>
+                </tr>
+            `;
+        }).join('');
+
+        // Pagination for All Scores
+        let paginationHtml = '';
+        if (viewAll && totalAttempts > RESULTS_PER_PAGE) {
+            const totalPages = Math.ceil(totalAttempts / RESULTS_PER_PAGE);
+            paginationHtml = `<div class="pagination">
+                <button ${page <= 1 ? 'disabled' : `onclick="showStats('${quizId}', '${escapedTopic}', true, ${page - 1})"`}>← Prev</button>
+                <span>Page ${page} of ${totalPages}</span>
+                <button ${page >= totalPages ? 'disabled' : `onclick="showStats('${quizId}', '${escapedTopic}', true, ${page + 1})"`}>Next →</button>
+            </div>`;
+        }
+
         container.innerHTML = `
-            ${toggleBtnHtml}
+            <div class="stats-toolbar">
+                <button onclick="showStats('${quizId}', '${escapedTopic}', ${!viewAll}, 1)" class="btn-secondary stats-toggle-btn">
+                    ${viewAll ? '🏆 Show Leaderboard' : '📋 Show All Scores'}
+                </button>
+            </div>
+            ${summaryHtml}
             <table class="stats-table">
                 <thead>
                     <tr>
-                        ${viewAll ? '<th>Time</th>' : '<th>Rank</th>'}
+                        <th>${viewAll ? 'Time' : 'Rank'}</th>
                         <th>Player</th>
-                        <th>Score</th>
+                        <th class="stats-score-header">Score</th>
                     </tr>
                 </thead>
-                <tbody>
-                    ${results.map((res, index) => `
-                        <tr>
-                            <td>${viewAll ? new Date(res.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : `<strong>#${index + 1}</strong>`}</td>
-                            <td><strong>${res.player_name}</strong></td>
-                            <td>${res.score}/${res.total_questions}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
+                <tbody>${tableRows}</tbody>
             </table>
+            ${paginationHtml}
         `;
     } catch (err) {
         console.error('Error loading stats:', err);
@@ -358,19 +427,11 @@ function copySpecificLink(link) {
 /**
  * Dynamically generates a printable HTML layout and triggers the browser print dialog.
  */
-async function exportToPDF(quizId, quizTitle) {
+async function exportToPDF(quizId) {
     try {
-        const client = await getSupabase();
-        if (!client) throw new Error("Database connection failed");
-
-        const { data: quiz, error } = await client
-            .from('quizzes')
-            .select('*')
-            .eq('id', quizId)
-            .single();
-
-        if (error) throw error;
-
+        const quizData = await api('GET', '/api/quiz/' + quizId);
+        const quiz = quizData.quiz;
+        const quizTitle = quiz.title || quiz.topic;
         const questions = quiz.questions_json;
         if (!questions || questions.length === 0) {
             showToast("This quiz has no questions to print.", 'error');
@@ -383,7 +444,7 @@ async function exportToPDF(quizId, quizTitle) {
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
-                <title>${quizTitle} - Exam</title>
+                <title>${escapeHtml(quizTitle)} - Exam</title>
                 <style>
                     body {
                         font-family: Arial, sans-serif;
@@ -434,8 +495,8 @@ async function exportToPDF(quizId, quizTitle) {
             </head>
             <body>
                 <div class="header">
-                    <h1>${quizTitle}</h1>
-                    <p>Topic: ${quiz.topic}</p>
+                    <h1>${escapeHtml(quizTitle)}</h1>
+                    <p>Topic: ${escapeHtml(quiz.topic)}</p>
                 </div>
                 
                 <div class="student-info">
@@ -448,9 +509,9 @@ async function exportToPDF(quizId, quizTitle) {
         questions.forEach((q, index) => {
             printHtml += `
                 <div class="question-block">
-                    <div class="question-text">${index + 1}. ${q.question}</div>
+                    <div class="question-text">${index + 1}. ${escapeHtml(q.question)}</div>
                     <ol class="options-list">
-                        ${q.options.map(opt => `<li class="option-item">${opt}</li>`).join('')}
+                        ${q.options.map(opt => `<li class="option-item">${escapeHtml(opt)}</li>`).join('')}
                     </ol>
                 </div>
             `;
@@ -461,7 +522,7 @@ async function exportToPDF(quizId, quizTitle) {
                 <div class="page-break"></div>
                 <div class="header">
                     <h1>Answer Key - DO NOT DISTRIBUTE</h1>
-                    <p>${quizTitle}</p>
+                    <p>${escapeHtml(quizTitle)}</p>
                 </div>
         `;
 
@@ -469,9 +530,9 @@ async function exportToPDF(quizId, quizTitle) {
             const correctOptionLetter = String.fromCharCode(65 + q.answer); // 0 -> A, 1 -> B
             printHtml += `
                 <div class="answer-key-block">
-                    <strong>${index + 1}. Correct Answer: ${correctOptionLetter}</strong> (${q.options[q.answer]})
+                    <strong>${index + 1}. Correct Answer: ${correctOptionLetter}</strong> (${escapeHtml(q.options[q.answer])})
                     <br>
-                    <em>Explanation:</em> ${q.explanation || 'No explanation provided.'}
+                    <em>Explanation:</em> ${escapeHtml(q.explanation || 'No explanation provided.')}
                 </div>
             `;
         });
