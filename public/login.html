@@ -22,6 +22,8 @@
             <h2>Welcome Back</h2>
             <p>Please enter your details to sign in</p>
             <div id="errorMsg" style="color: #dc2626; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
+            <div id="resendMsg" style="color: #059669; font-size: 0.8125rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
+            <form id="loginForm">
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" id="email" placeholder="Enter your email">
@@ -30,7 +32,8 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" placeholder="••••••••">
             </div>
-            <button id="doLogin">Sign In</button>
+            <button type="submit" id="doLogin">Sign In</button>
+            </form>
             <p style="margin-top: 1rem; font-size: 0.8125rem; text-align: center;">
                 <a href="resetpassword.html" style="color: var(--text-muted); text-decoration: underline;">Forgot password?</a>
             </p>
@@ -40,11 +43,21 @@
 
     <script src="js/auth.js?v=1.4"></script>
     <script>
+        const UNCONFIRMED_MSGS = ['email not confirmed', 'email not verified', 'unconfirmed', 'not confirmed'];
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            document.getElementById('doLogin').click();
+        });
+
         document.getElementById('doLogin').onclick = async function() {
             const email = document.getElementById('email').value.trim();
             const pwd = document.getElementById('password').value.trim();
             const errorDiv = document.getElementById('errorMsg');
+            const resendMsg = document.getElementById('resendMsg');
             const loginBtn = document.getElementById('doLogin');
+
+            resendMsg.style.display = 'none';
 
             if (!email || !pwd) {
                 errorDiv.innerText = "Please fill in all fields.";
@@ -59,8 +72,27 @@
             try {
                 const { data, error } = await loginUser(email, pwd);
                 if (error) {
-                    errorDiv.innerText = error.message;
-                    errorDiv.style.display = "block";
+                    const lowerMsg = error.message.toLowerCase();
+                    const isUnconfirmed = UNCONFIRMED_MSGS.some(m => lowerMsg.includes(m));
+                    if (isUnconfirmed) {
+                        errorDiv.innerHTML = `Your email hasn't been verified yet. <a href="#" id="resendLink" style="color: var(--primary-color); text-decoration: underline;">Resend confirmation email</a>`;
+                        errorDiv.style.display = "block";
+                        document.getElementById('resendLink').onclick = async function(e) {
+                            e.preventDefault();
+                            try {
+                                await resendConfirmationEmail(email);
+                                resendMsg.innerText = "Confirmation email resent! Check your inbox.";
+                                resendMsg.style.display = "block";
+                                errorDiv.style.display = "none";
+                            } catch (resendErr) {
+                                errorDiv.innerHTML = resendErr.message;
+                                errorDiv.style.display = "block";
+                            }
+                        };
+                    } else {
+                        errorDiv.innerText = error.message;
+                        errorDiv.style.display = "block";
+                    }
                 } else {
                     window.location.href = 'index.html';
                 }

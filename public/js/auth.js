@@ -55,6 +55,24 @@ async function registerUser(email, password, displayName) {
     return { data, error };
 }
 
+async function resendConfirmationEmail(email) {
+    const client = await getSupabase();
+    if (!client) throw new Error("Could not connect to database. Please refresh.");
+
+    const { error } = await client.auth.resend({ type: 'signup', email });
+    if (error) throw error;
+    return { success: true };
+}
+
+async function setPasswordFromRecovery(newPassword) {
+    const client = await getSupabase();
+    if (!client) throw new Error("Could not connect to database. Please refresh.");
+
+    const { error } = await client.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    return { success: true };
+}
+
 async function loginUser(email, password) {
     const client = await getSupabase();
     if (!client) throw new Error("Could not connect to database. Please refresh.");
@@ -76,30 +94,46 @@ async function logoutUser() {
     }
 }
 
-async function changePassword(currentEmail, currentPassword, newPassword) {
-    const client = await getSupabase();
-    if (!client) throw new Error("Could not connect to database. Please refresh.");
-
-    const { error: signInError } = await client.auth.signInWithPassword({
-        email: currentEmail,
-        password: currentPassword
+async function resetPassword(email) {
+    const res = await fetch('/api/send-reset-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
     });
-    if (signInError) throw signInError;
-
-    const { error } = await client.auth.updateUser({ password: newPassword });
-    if (error) throw error;
-    return { success: true };
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to send reset email.');
+    return data;
 }
 
-async function resetPassword(email) {
-    const client = await getSupabase();
-    if (!client) throw new Error("Could not connect to database. Please refresh.");
+async function deleteAccount() {
+    const session = await checkSession();
+    if (!session) throw new Error('Not authenticated');
 
-    const { error } = await client.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login.html`
+    const res = await fetch('/api/delete-account', {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
     });
-    if (error) throw error;
-    return { success: true };
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete account');
+    return data;
+}
+
+async function confirmDeleteAccount() {
+    const input = prompt('Type DELETE to permanently remove your account and all data:');
+    if (input !== 'DELETE') {
+        showToast('Account deletion cancelled.', 'info');
+        return;
+    }
+
+    try {
+        showToast('Deleting account...', 'info');
+        await deleteAccount();
+        localStorage.clear();
+        showToast('Account deleted permanently.', 'success');
+        setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
 }
 
 async function checkSession() {
@@ -127,7 +161,7 @@ async function renderNavigation() {
             <li><a href="join.html" class="${currentPage === 'join.html' ? 'active' : ''}">Play</a></li>
             <li><a href="quizzes.html" class="${currentPage === 'quizzes.html' ? 'active' : ''}">Quiz</a></li>
             <li><a href="about.html" class="${currentPage === 'about.html' ? 'active' : ''}">About</a></li>
-            <li><a href="changepassword.html" class="${currentPage === 'changepassword.html' ? 'active' : ''}" style="font-size: 0.875rem;">Password</a></li>
+            <li><a href="account.html" class="${currentPage === 'account.html' ? 'active' : ''}">Account</a></li>
             <li><button onclick="logoutUser()" class="btn-logout">Logout</button></li>
         `;
     } else {
@@ -142,7 +176,7 @@ async function renderNavigation() {
 
 // Global protection and nav rendering
 document.addEventListener('DOMContentLoaded', async () => {
-    const protectedPaths = ['index.html', 'quizzes.html'];
+    const protectedPaths = ['index.html', 'quizzes.html', 'account.html'];
     // Extract clean path without query params
     const fullPath = window.location.pathname;
     const pathParts = fullPath.split('/').pop().split('?');

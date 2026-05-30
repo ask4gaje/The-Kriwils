@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings - The Kriwils</title>
+    <link rel="stylesheet" href="css/style.css?v=1.4">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="nav-brand">The Kriwils</a>
+        <ul class="nav-links">
+            <!-- Dynamically populated by auth.js -->
+        </ul>
+    </nav>
+    <div class="login-container">
+        <div class="login-card">
+            <h2>Account Settings</h2>
+            <p>Manage your account</p>
+            <div id="errorMsg" style="color: #dc2626; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
+            <div id="successMsg" style="color: #059669; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
+
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-main);">Change Password</h3>
+            <p style="margin-bottom: 1rem;">A reset link will be sent to your registered email address.</p>
+            <div id="resetEmailDisplay" style="margin-bottom: 1rem; padding: 0.75rem; background: #f9fafb; border: 1px solid var(--border-color); border-radius: 0.5rem; font-size: 0.875rem; color: var(--text-muted);"></div>
+            <button id="doSendReset">Send Password Reset Email</button>
+
+            <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-color);">
+
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #dc2626;">Delete Account</h3>
+            <p style="margin-bottom: 1rem;">This will permanently delete your account and all your quizzes. This action cannot be undone.</p>
+            <form id="deleteForm">
+            <div class="form-group">
+                <label for="deleteConfirm">Type DELETE to confirm</label>
+                <input type="text" id="deleteConfirm" placeholder="DELETE">
+            </div>
+            <button type="submit" id="doDelete" class="btn-danger">Delete Account</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js?v=1.4"></script>
+    <script>
+        (async function() {
+            document.getElementById('deleteForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                document.getElementById('doDelete').click();
+            });
+
+            const errorDiv = document.getElementById('errorMsg');
+            const successDiv = document.getElementById('successMsg');
+            const emailDisplay = document.getElementById('resetEmailDisplay');
+
+            const session = await checkSession();
+            const email = session?.user?.email;
+            if (email) {
+                emailDisplay.textContent = email;
+            } else {
+                emailDisplay.textContent = 'Email not available';
+            }
+
+            document.getElementById('doSendReset').onclick = async function() {
+                if (!email) {
+                    errorDiv.innerText = 'Could not determine your email address. Please log out and in again.';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                const btn = document.getElementById('doSendReset');
+                btn.disabled = true;
+                btn.innerText = 'Sending...';
+                errorDiv.style.display = 'none';
+                successDiv.style.display = 'none';
+
+                try {
+                    await resetPassword(email);
+                    successDiv.innerText = 'Reset link sent! Check your inbox.';
+                    successDiv.style.display = 'block';
+                } catch (err) {
+                    errorDiv.innerText = err.message;
+                    errorDiv.style.display = 'block';
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = 'Send Password Reset Email';
+                }
+            };
+
+            document.getElementById('doDelete').onclick = async function() {
+                const input = document.getElementById('deleteConfirm').value.trim();
+                const errorDiv = document.getElementById('errorMsg');
+                const successDiv = document.getElementById('successMsg');
+
+                successDiv.style.display = 'none';
+
+                if (input !== 'DELETE') {
+                    errorDiv.innerText = "Please type DELETE to confirm account deletion.";
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                try {
+                    errorDiv.style.display = 'none';
+                    document.getElementById('doDelete').disabled = true;
+                    await deleteAccount();
+                    localStorage.clear();
+                    successDiv.innerHTML = 'Account deleted permanently. Redirecting...';
+                    successDiv.style.display = 'block';
+                    setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+                } catch (err) {
+                    errorDiv.innerText = err.message;
+                    errorDiv.style.display = 'block';
+                } finally {
+                    document.getElementById('doDelete').disabled = false;
+                }
+            };
+        })();
+    </script>
+</body>
+</html>

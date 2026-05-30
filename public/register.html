@@ -23,6 +23,8 @@
             <p>Join The Kriwils today</p>
             <div id="errorMsg" style="color: #dc2626; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
             <div id="successMsg" style="color: #059669; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
+            <div id="resendMsg" style="color: #059669; font-size: 0.8125rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
+            <form id="registerForm">
             <div class="form-group">
                 <label for="regEmail">Email</label>
                 <input type="email" id="regEmail" placeholder="you@example.com">
@@ -35,19 +37,26 @@
                 <label for="regPassword">Password</label>
                 <input type="password" id="regPassword" placeholder="••••••••">
             </div>
-            <button id="doRegister">Sign Up</button>
+            <button type="submit" id="doRegister">Sign Up</button>
+            </form>
             <p style="margin-top: 1.5rem; font-size: 0.875rem;">Already have an account? <a href="login.html" style="color: var(--primary-color); text-decoration: none;">Sign In</a></p>
         </div>
     </div>
 
     <script src="js/auth.js?v=1.4"></script>
     <script>
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            document.getElementById('doRegister').click();
+        });
+
         document.getElementById('doRegister').onclick = async function() {
             const email = document.getElementById('regEmail').value.trim();
             const displayName = document.getElementById('regDisplayName').value.trim();
             const pwd = document.getElementById('regPassword').value.trim();
             const errorDiv = document.getElementById('errorMsg');
             const successDiv = document.getElementById('successMsg');
+            const resendMsg = document.getElementById('resendMsg');
             const regBtn = document.getElementById('doRegister');
 
             if (!email || !pwd) {
@@ -60,6 +69,7 @@
             regBtn.innerText = "Creating Account...";
             errorDiv.style.display = "none";
             successDiv.style.display = "none";
+            resendMsg.style.display = "none";
 
             try {
                 const { data, error } = await registerUser(email, pwd, displayName);
@@ -67,13 +77,33 @@
                     errorDiv.innerText = error.message;
                     errorDiv.style.display = "block";
                 } else {
-                    successDiv.innerText = data.user?.identities?.length === 0
-                        ? "Account created! Check your email for a confirmation link, then sign in."
-                        : "Account created! You can now log in.";
-                    successDiv.style.display = "block";
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
+                    const needsConfirmation = !data.session;
+                    if (needsConfirmation) {
+                        successDiv.style.color = '#d97706';
+                        successDiv.innerHTML = 'A confirmation email has been sent. '
+                            + '<strong>You must verify your email before signing in.</strong>'
+                            + '<br><a href="#" id="resendRegLink" style="color: var(--primary-color); text-decoration: underline;">Resend confirmation email</a>';
+                        successDiv.style.display = "block";
+                        regBtn.style.display = "none";
+                        document.getElementById('resendRegLink').onclick = async function(e) {
+                            e.preventDefault();
+                            try {
+                                await resendConfirmationEmail(email);
+                                resendMsg.innerText = "Confirmation email resent! Check your inbox.";
+                                resendMsg.style.display = "block";
+                            } catch (resendErr) {
+                                resendMsg.innerText = resendErr.message;
+                                resendMsg.style.display = "block";
+                            }
+                        };
+                    } else {
+                        successDiv.style.color = '#059669';
+                        successDiv.innerText = "Account created! You can now log in.";
+                        successDiv.style.display = "block";
+                        setTimeout(() => {
+                            window.location.href = 'login.html';
+                        }, 2000);
+                    }
                 }
             } catch (err) {
                 errorDiv.innerText = err.message;

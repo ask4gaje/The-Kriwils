@@ -113,10 +113,12 @@
         <div id="namePrompt" style="display: none;" class="quiz-container">
             <h2 style="margin-bottom: 1rem;">Ready to Play?</h2>
             <p style="margin-bottom: 2rem;">Please enter your name to start the quiz and save your score.</p>
+            <form id="playerNameForm">
             <div class="form-group">
                 <input type="text" id="playerName" placeholder="Your Name" style="margin-bottom: 1.5rem;">
-                <button onclick="startQuiz()">Start Quiz</button>
+                <button type="submit" onclick="startQuiz()">Start Quiz</button>
             </div>
+            </form>
         </div>
 
         <!-- Main Quiz -->
@@ -159,5 +161,11 @@
 
     <script src="/js/auth.js?v=1.4"></script>
     <script src="/js/play.js?v=1.4"></script>
+    <script>
+        document.getElementById('playerNameForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            startQuiz();
+        });
+    </script>
 </body>
 </html>
