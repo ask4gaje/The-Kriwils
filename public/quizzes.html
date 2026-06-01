@@ -22,8 +22,7 @@
         <section id="myQuizzesSection" class="my-quizzes">
             <h2>Your Recent Quizzes</h2>
             <div id="quizzesList" class="quizzes-grid">
-                <!-- Loading spinner will be injected here -->
-                <div class="loading-wrapper" style="grid-column: 1/-1;">
+                <div class="loading-wrapper loading-wrapper-full">
                     <div class="spinner"></div>
                     <p>Loading your quizzes...</p>
                 </div>
@@ -31,30 +30,30 @@
         </section>
 
         <!-- Stats Modal -->
-        <div id="statsModal" class="modal" style="display: none;">
+        <div id="statsModal" class="modal hidden">
             <div class="modal-content">
                 <div class="modal-header">
                     <h2 id="modalTitle">Quiz Statistics</h2>
                     <span class="close-modal" onclick="closeStatsModal()">&times;</span>
                 </div>
                 <div id="statsContainer" class="stats-container">
-                    <p style="text-align: center;">Loading results...</p>
+                    <p class="loading-text-centered">Loading results...</p>
                 </div>
             </div>
         </div>
 
         <!-- Edit Quiz Modal -->
-        <div id="editQuizModal" class="modal" style="display: none;">
-            <div class="modal-content" style="max-width: 800px;">
+        <div id="editQuizModal" class="modal hidden">
+            <div class="modal-content modal-content-wide">
                 <div class="modal-header">
                     <h2>Edit Quiz Content</h2>
                     <span class="close-modal" onclick="closeEditModal()">&times;</span>
                 </div>
-                <div id="editFormContainer" style="margin-top: 1rem;">
+                <div id="editFormContainer" class="edit-form-container">
                     <!-- Dynamic form will be injected here -->
                 </div>
-                <div class="modal-footer" style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
-                    <button id="saveEditBtn" onclick="saveQuizEdits()" style="width: auto; padding: 0.75rem 2rem;">Save Changes</button>
+                <div class="modal-footer">
+                    <button id="saveEditBtn" onclick="saveQuizEdits()" class="save-btn">Save Changes</button>
                 </div>
             </div>
         </div>

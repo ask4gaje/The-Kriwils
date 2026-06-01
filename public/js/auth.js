@@ -149,10 +149,9 @@ async function renderNavigation() {
     if (!navLinks) return;
 
     const session = await checkSession();
-    // Improved path extraction to handle query params and root
     const fullPath = window.location.pathname;
-    let currentPage = fullPath.split('/').pop() || 'join.html'; // Root is join.html on dev branch
-    if (fullPath === '/' || fullPath === '') currentPage = 'join.html';
+    const rawPage = fullPath.replace(/\/$/, '').split('/').pop() || 'join.html';
+    const currentPage = rawPage.split('?')[0].split('#')[0];
 
     if (session) {
         // Authenticated Menu: Create, Play, Quiz, About, Logout
@@ -213,6 +212,7 @@ function showToast(message, type = 'info') {
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
+        container.setAttribute('aria-live', 'polite');
         document.body.appendChild(container);
     }
 
@@ -256,4 +256,16 @@ function escapeHtml(str) {
     const div = document.createElement('div');
     div.appendChild(document.createTextNode(str));
     return div.innerHTML;
+}
+
+function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = 'Hide';
+    } else {
+        input.type = 'password';
+        btn.textContent = 'Show';
+    }
 }

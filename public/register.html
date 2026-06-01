@@ -21,25 +21,28 @@
         <div class="login-card">
             <h2>Create Account</h2>
             <p>Join The Kriwils today</p>
-            <div id="errorMsg" style="color: #dc2626; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
-            <div id="successMsg" style="color: #059669; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
-            <div id="resendMsg" style="color: #059669; font-size: 0.8125rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
+            <div id="errorMsg" class="message-error"></div>
+            <div id="successMsg" class="message-success"></div>
+            <div id="resendMsg" class="message-success message-sm"></div>
             <form id="registerForm">
             <div class="form-group">
                 <label for="regEmail">Email</label>
-                <input type="email" id="regEmail" placeholder="you@example.com">
+                <input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email">
             </div>
             <div class="form-group">
                 <label for="regDisplayName">Display Name (optional)</label>
-                <input type="text" id="regDisplayName" placeholder="How others will see you">
+                <input type="text" id="regDisplayName" placeholder="How others will see you" autocomplete="name">
             </div>
             <div class="form-group">
                 <label for="regPassword">Password</label>
-                <input type="password" id="regPassword" placeholder="••••••••">
+                <div class="password-wrapper">
+                    <input type="password" id="regPassword" placeholder="Create a password" autocomplete="new-password">
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('regPassword', this)">Show</button>
+                </div>
             </div>
             <button type="submit" id="doRegister">Sign Up</button>
             </form>
-            <p style="margin-top: 1.5rem; font-size: 0.875rem;">Already have an account? <a href="login.html" style="color: var(--primary-color); text-decoration: none;">Sign In</a></p>
+            <p class="login-footer-link">Already have an account? <a href="login.html">Sign In</a></p>
         </div>
     </div>
 
@@ -82,7 +85,7 @@
                         successDiv.style.color = '#d97706';
                         successDiv.innerHTML = 'A confirmation email has been sent. '
                             + '<strong>You must verify your email before signing in.</strong>'
-                            + '<br><a href="#" id="resendRegLink" style="color: var(--primary-color); text-decoration: underline;">Resend confirmation email</a>';
+                            + '<br><a href="#" id="resendRegLink" class="inline-link">Resend confirmation email</a>';
                         successDiv.style.display = "block";
                         regBtn.style.display = "none";
                         document.getElementById('resendRegLink').onclick = async function(e) {

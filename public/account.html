@@ -21,22 +21,22 @@
         <div class="login-card">
             <h2>Account Settings</h2>
             <p>Manage your account</p>
-            <div id="errorMsg" style="color: #dc2626; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
-            <div id="successMsg" style="color: #059669; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
+            <div id="errorMsg" class="message-error"></div>
+            <div id="successMsg" class="message-success"></div>
 
-            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-main);">Change Password</h3>
-            <p style="margin-bottom: 1rem;">A reset link will be sent to your registered email address.</p>
-            <div id="resetEmailDisplay" style="margin-bottom: 1rem; padding: 0.75rem; background: #f9fafb; border: 1px solid var(--border-color); border-radius: 0.5rem; font-size: 0.875rem; color: var(--text-muted);"></div>
+            <h3 class="account-section-heading">Change Password</h3>
+            <p class="account-section-text">A reset link will be sent to your registered email address.</p>
+            <div id="resetEmailDisplay" class="account-email-display"></div>
             <button id="doSendReset">Send Password Reset Email</button>
 
-            <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-color);">
+            <hr class="account-divider">
 
-            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #dc2626;">Delete Account</h3>
-            <p style="margin-bottom: 1rem;">This will permanently delete your account and all your quizzes. This action cannot be undone.</p>
+            <h3 class="account-section-heading-danger">Delete Account</h3>
+            <p class="account-section-text">This will permanently delete your account and all your quizzes. This action cannot be undone.</p>
             <form id="deleteForm">
             <div class="form-group">
                 <label for="deleteConfirm">Type DELETE to confirm</label>
-                <input type="text" id="deleteConfirm" placeholder="DELETE">
+                <input type="text" id="deleteConfirm" placeholder="DELETE" autocomplete="off">
             </div>
             <button type="submit" id="doDelete" class="btn-danger">Delete Account</button>
             </form>

@@ -19,7 +19,7 @@
     </nav>
 
 
-    <main style="max-width: 1000px;">
+    <main class="main-wide">
         <!-- Dual-Path Hero Section -->
         <div id="hero-grid-container" class="hero-grid">
             <!-- Play Path -->
@@ -28,19 +28,19 @@
                 <p>Have a code from your teacher or friend? Enter it below and join the game instantly.</p>
                 
                 <div class="join-input-wrapper">
-                    <label for="joinQuizCode" style="text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-size: 0.75rem; display: block; margin-bottom: 0.5rem; text-align: center;">Quiz Code</label>
+                    <label for="joinQuizCode" class="join-input-label">Quiz Code</label>
                     <input type="text" id="joinQuizCode" class="join-input-large" placeholder="KRIWIL" maxlength="6">
                 </div>
                 <button id="joinBtn">Enter Quiz</button>
             </div>
 
             <!-- Create Path -->
-            <div id="host-path-card" class="hero-card" style="border-style: dashed; background: #fdfcfe;">
+            <div id="host-path-card" class="hero-card host-card">
                 <h2>Host a Quiz 🧠</h2>
                 <p>Want to test your students or friends? Use our AI to generate a custom quiz that you can modify in seconds.</p>
-                <ul style="text-align: left; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.5rem; list-style: none;">
-                    <li style="margin-bottom: 0.5rem;">✨ Generate from any topic</li>
-                    <li style="margin-bottom: 0.5rem;">📄 Upload a PDF for more personalized quiz</li>
+                <ul class="host-feature-list">
+                    <li>✨ Generate from any topic</li>
+                    <li>📄 Upload a PDF for more personalized quiz</li>
                     <li>📊 Track student results & scores</li>
                 </ul>
                 <button id="hostBtn" class="btn-secondary">Start Creating →</button>

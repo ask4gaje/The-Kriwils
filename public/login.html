@@ -21,23 +21,24 @@
         <div class="login-card">
             <h2>Welcome Back</h2>
             <p>Please enter your details to sign in</p>
-            <div id="errorMsg" style="color: #dc2626; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
-            <div id="resendMsg" style="color: #059669; font-size: 0.8125rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
+            <div id="errorMsg" class="message-error"></div>
+            <div id="resendMsg" class="message-success message-sm"></div>
             <form id="loginForm">
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" placeholder="Enter your email">
+                <input type="email" id="email" placeholder="Enter your email" autocomplete="email">
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" placeholder="••••••••">
+                <div class="password-wrapper">
+                    <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', this)">Show</button>
+                </div>
             </div>
             <button type="submit" id="doLogin">Sign In</button>
             </form>
-            <p style="margin-top: 1rem; font-size: 0.8125rem; text-align: center;">
-                <a href="resetpassword.html" style="color: var(--text-muted); text-decoration: underline;">Forgot password?</a>
-            </p>
-            <p style="margin-top: 0.5rem; font-size: 0.875rem;">Don't have an account? <a href="register.html" style="color: var(--primary-color); text-decoration: none;">Sign Up</a></p>
+            <p class="login-footer-link"><a href="resetpassword.html">Forgot password?</a></p>
+            <p class="login-footer-link">Don't have an account? <a href="register.html">Sign Up</a></p>
         </div>
     </div>
 
@@ -75,7 +76,7 @@
                     const lowerMsg = error.message.toLowerCase();
                     const isUnconfirmed = UNCONFIRMED_MSGS.some(m => lowerMsg.includes(m));
                     if (isUnconfirmed) {
-                        errorDiv.innerHTML = `Your email hasn't been verified yet. <a href="#" id="resendLink" style="color: var(--primary-color); text-decoration: underline;">Resend confirmation email</a>`;
+                        errorDiv.innerHTML = `Your email hasn't been verified yet. <a href="#" id="resendLink" class="inline-link">Resend confirmation email</a>`;
                         errorDiv.style.display = "block";
                         document.getElementById('resendLink').onclick = async function(e) {
                             e.preventDefault();
