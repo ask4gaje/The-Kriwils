@@ -41,7 +41,13 @@ async function loadMyQuizzes() {
         const quizzes = data.quizzes;
 
         if (!quizzes || quizzes.length === 0) {
-            listContainer.innerHTML = '<p class="empty-state">You haven\'t generated any quizzes yet.</p>';
+            listContainer.innerHTML = `
+                <div class="stats-empty quizzes-empty">
+                    <div class="stats-empty-emoji">🎓</div>
+                    <p class="stats-empty-text">No quizzes yet — create your first one!</p>
+                    <button onclick="window.location.href='index.html'" class="empty-state-btn">Create Quiz</button>
+                </div>
+            `;
             return;
         }
 
@@ -71,7 +77,7 @@ async function loadMyQuizzes() {
             return `
                 <div class="quiz-card" style="animation-delay: ${index * 0.1}s">
                     <div class="card-top-actions">
-                        <button class="btn-edit" onclick="openEditModal('${quiz.id}')">✏️ Edit</button>
+                        <button class="btn-edit" onclick="openEditModal('${quiz.id}')">Edit</button>
                         <button class="btn-utility" onclick="exportToPDF('${quiz.id}')">Print</button>
                     </div>
                     <div class="quiz-card-header">
@@ -566,4 +572,24 @@ async function exportToPDF(quizId) {
 }
 
 // Load quizzes on initial page load
-document.addEventListener('DOMContentLoaded', loadMyQuizzes);
+document.addEventListener('DOMContentLoaded', () => {
+    loadMyQuizzes();
+
+    const quickInput = document.getElementById('quickQuizCode');
+    const quickBtn = document.getElementById('quickJoinBtn');
+
+    if (quickInput && quickBtn) {
+        const join = () => {
+            const code = quickInput.value.trim().toUpperCase();
+            if (code.length === 6) {
+                window.location.href = `/play/${code}`;
+            } else {
+                showToast("Please enter a valid 6-character code!", 'error');
+            }
+        };
+        quickBtn.onclick = join;
+        quickInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') join();
+        });
+    }
+});

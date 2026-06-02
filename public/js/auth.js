@@ -152,9 +152,9 @@ async function renderNavigation() {
     const fullPath = window.location.pathname;
     const rawPage = fullPath.replace(/\/$/, '').split('/').pop() || 'join.html';
     const currentPage = rawPage.split('?')[0].split('#')[0];
+    const themeIcon = document.documentElement.dataset.theme === 'dark' ? '☀️' : '🌙';
 
     if (session) {
-        // Authenticated Menu: Create, Play, Quiz, About, Logout
         navLinks.innerHTML = `
             <li><a href="index.html" class="${currentPage === 'index.html' ? 'active' : ''}">Create</a></li>
             <li><a href="join.html" class="${currentPage === 'join.html' ? 'active' : ''}">Play</a></li>
@@ -162,26 +162,39 @@ async function renderNavigation() {
             <li><a href="about.html" class="${currentPage === 'about.html' ? 'active' : ''}">About</a></li>
             <li><a href="account.html" class="${currentPage === 'account.html' ? 'active' : ''}">Account</a></li>
             <li><button onclick="logoutUser()" class="btn-logout">Logout</button></li>
+            <li><button onclick="toggleTheme()" class="btn-theme" aria-label="Toggle theme">${themeIcon}</button></li>
         `;
     } else {
-        // Unauthenticated Menu: Play, About, Login
         navLinks.innerHTML = `
             <li><a href="join.html" class="${currentPage === 'join.html' ? 'active' : ''}">Play</a></li>
             <li><a href="about.html" class="${currentPage === 'about.html' ? 'active' : ''}">About</a></li>
             <li><a href="login.html" class="btn-login">Login</a></li>
+            <li><button onclick="toggleTheme()" class="btn-theme" aria-label="Toggle theme">${themeIcon}</button></li>
         `;
     }
+}
+
+function toggleTheme() {
+    const current = document.documentElement.dataset.theme;
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem('theme', next);
+    const btn = document.querySelector('.btn-theme');
+    if (btn) btn.textContent = next === 'dark' ? '☀️' : '🌙';
 }
 
 // Global protection and nav rendering
 document.addEventListener('DOMContentLoaded', async () => {
     const protectedPaths = ['index.html', 'quizzes.html', 'account.html'];
-    // Extract clean path without query params
     const fullPath = window.location.pathname;
     const pathParts = fullPath.split('/').pop().split('?');
     const currentPath = pathParts[0];
 
-    // Ensure Supabase is initialized before checking session
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+    document.documentElement.dataset.theme = theme;
+
     await initSupabase();
 
     checkSession().then(session => {
