@@ -12,7 +12,7 @@
 </head>
 <body>
     <nav aria-label="Main navigation">
-        <a href="index.html" class="nav-brand">The Kriwils</a>
+        <a href="/index" class="nav-brand">The Kriwils</a>
         <ul class="nav-links">
             <!-- Dynamically populated by auth.js -->
         </ul>
@@ -42,7 +42,7 @@
             </div>
             <button type="submit" id="doRegister">Sign Up</button>
             </form>
-            <p class="login-footer-link">Already have an account? <a href="login.html">Sign In</a></p>
+            <p class="login-footer-link">Already have an account? <a href="/login">Sign In</a></p>
         </div>
     </div>
 
@@ -108,7 +108,7 @@
                         successDiv.innerText = "Account created! You can now log in.";
                         successDiv.style.display = "block";
                         setTimeout(() => {
-                            window.location.href = 'login.html';
+                            window.location.href = '/login';
                         }, 2000);
                     }
             } catch (err) {

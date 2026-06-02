@@ -17,7 +17,7 @@ function showErrorUI(message) {
             <div class="error-emoji">🤔</div>
             <h2 class="error-heading">Oops! Quiz Not Found</h2>
             <p class="error-text">${escapeHtml(message)}</p>
-            <button onclick="window.location.href='join.html'" class="error-btn">Try Another Code</button>
+            <button onclick="window.location.href='/join'" class="error-btn">Try Another Code</button>
         </div>
     `;
 }

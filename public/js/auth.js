@@ -88,9 +88,9 @@ async function logoutUser() {
     const client = await getSupabase();
     if (client) {
         const { error } = await client.auth.signOut();
-        if (!error) window.location.href = 'login.html';
+        if (!error) window.location.href = '/login';
     } else {
-        window.location.href = 'login.html';
+        window.location.href = '/login';
     }
 }
 
@@ -130,7 +130,7 @@ async function confirmDeleteAccount() {
         await deleteAccount();
         localStorage.clear();
         showToast('Account deleted permanently.', 'success');
-        setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+        setTimeout(() => { window.location.href = '/login'; }, 1500);
     } catch (err) {
         showToast(err.message, 'error');
     }
@@ -150,25 +150,25 @@ async function renderNavigation() {
 
     const session = await checkSession();
     const fullPath = window.location.pathname;
-    const rawPage = fullPath.replace(/\/$/, '').split('/').pop() || 'join.html';
-    const currentPage = rawPage.split('?')[0].split('#')[0];
+    const rawPage = fullPath.replace(/\/$/, '').split('/').pop() || 'join';
+    const currentPage = rawPage.replace('.html', '').split('?')[0].split('#')[0];
     const themeIcon = document.documentElement.dataset.theme === 'dark' ? '☀️' : '🌙';
 
     if (session) {
         navLinks.innerHTML = `
-            <li><a href="index.html" class="${currentPage === 'index.html' ? 'active' : ''}">Create</a></li>
-            <li><a href="join.html" class="${currentPage === 'join.html' ? 'active' : ''}">Play</a></li>
-            <li><a href="quizzes.html" class="${currentPage === 'quizzes.html' ? 'active' : ''}">Quiz</a></li>
-            <li><a href="about.html" class="${currentPage === 'about.html' ? 'active' : ''}">About</a></li>
-            <li><a href="account.html" class="${currentPage === 'account.html' ? 'active' : ''}">Account</a></li>
+            <li><a href="/index" class="${currentPage === 'index' ? 'active' : ''}">Create</a></li>
+            <li><a href="/join" class="${currentPage === 'join' ? 'active' : ''}">Play</a></li>
+            <li><a href="/quizzes" class="${currentPage === 'quizzes' ? 'active' : ''}">Quiz</a></li>
+            <li><a href="/about" class="${currentPage === 'about' ? 'active' : ''}">About</a></li>
+            <li><a href="/account" class="${currentPage === 'account' ? 'active' : ''}">Account</a></li>
             <li><button onclick="logoutUser()" class="btn-logout">Logout</button></li>
             <li><button onclick="toggleTheme()" class="btn-theme" aria-label="Toggle theme">${themeIcon}</button></li>
         `;
     } else {
         navLinks.innerHTML = `
-            <li><a href="join.html" class="${currentPage === 'join.html' ? 'active' : ''}">Play</a></li>
-            <li><a href="about.html" class="${currentPage === 'about.html' ? 'active' : ''}">About</a></li>
-            <li><a href="login.html" class="btn-login">Login</a></li>
+            <li><a href="/join" class="${currentPage === 'join' ? 'active' : ''}">Play</a></li>
+            <li><a href="/about" class="${currentPage === 'about' ? 'active' : ''}">About</a></li>
+            <li><a href="/login" class="btn-login">Login</a></li>
             <li><button onclick="toggleTheme()" class="btn-theme" aria-label="Toggle theme">${themeIcon}</button></li>
         `;
     }
@@ -185,9 +185,9 @@ function toggleTheme() {
 
 // Global protection and nav rendering
 document.addEventListener('DOMContentLoaded', async () => {
-    const protectedPaths = ['index.html', 'quizzes.html', 'account.html'];
+    const protectedPaths = ['index', 'quizzes', 'account'];
     const fullPath = window.location.pathname;
-    const pathParts = fullPath.split('/').pop().split('?');
+    const pathParts = fullPath.split('/').pop().replace('.html', '').split('?');
     const currentPath = pathParts[0];
 
     const savedTheme = localStorage.getItem('theme');
@@ -200,13 +200,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkSession().then(session => {
         // 1. Handle root redirection for logged-in users
         if ((fullPath === '/' || fullPath === '') && session) {
-            window.location.href = 'index.html';
+            window.location.href = '/index';
             return;
         }
 
         // 2. Handle protection
         if (protectedPaths.includes(currentPath) && !session) {
-            window.location.href = 'login.html';
+            window.location.href = '/login';
             return;
         }
         

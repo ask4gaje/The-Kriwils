@@ -12,7 +12,7 @@
 </head>
 <body>
     <nav aria-label="Main navigation">
-        <a href="index.html" class="nav-brand">The Kriwils</a>
+        <a href="/index" class="nav-brand">The Kriwils</a>
         <ul class="nav-links">
             <!-- Dynamically populated by auth.js -->
         </ul>
@@ -119,16 +119,16 @@
                             if (typeof checkSession === 'function') {
                                 const session = await checkSession();
                                 if (session) {
-                                    window.location.href = 'index.html';
+                                    window.location.href = '/index';
                                 } else {
-                                    window.location.href = 'login.html';
+                                    window.location.href = '/login';
                                 }
                             } else {
-                                window.location.href = 'login.html';
+                                window.location.href = '/login';
                             }
                         } catch (e) {
                             console.error("Host button redirect error:", e);
-                            window.location.href = 'login.html';
+                            window.location.href = '/login';
                         }
                     };
                 }

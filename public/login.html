@@ -12,7 +12,7 @@
 </head>
 <body>
     <nav aria-label="Main navigation">
-        <a href="index.html" class="nav-brand">The Kriwils</a>
+        <a href="/index" class="nav-brand">The Kriwils</a>
         <ul class="nav-links">
             <!-- Dynamically populated by auth.js -->
         </ul>
@@ -37,8 +37,8 @@
             </div>
             <button type="submit" id="doLogin">Sign In</button>
             </form>
-            <p class="login-footer-link"><a href="resetpassword.html">Forgot password?</a></p>
-            <p class="login-footer-link">Don't have an account? <a href="register.html">Sign Up</a></p>
+            <p class="login-footer-link"><a href="/resetpassword">Forgot password?</a></p>
+            <p class="login-footer-link">Don't have an account? <a href="/register">Sign Up</a></p>
         </div>
     </div>
 
@@ -95,7 +95,7 @@
                         errorDiv.style.display = "block";
                     }
                 } else {
-                    window.location.href = 'index.html';
+                    window.location.href = '/index';
                 }
             } catch (err) {
                 errorDiv.innerText = err.message;

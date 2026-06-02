@@ -12,7 +12,7 @@
 </head>
 <body>
     <nav aria-label="Main navigation">
-        <a href="index.html" class="nav-brand">The Kriwils</a>
+        <a href="/index" class="nav-brand">The Kriwils</a>
         <ul class="nav-links">
             <!-- Dynamically populated by auth.js -->
         </ul>
@@ -109,7 +109,7 @@
                     localStorage.clear();
                     successDiv.innerHTML = 'Account deleted permanently. Redirecting...';
                     successDiv.style.display = 'block';
-                    setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+                    setTimeout(() => { window.location.href = '/login'; }, 1500);
                 } catch (err) {
                     errorDiv.innerText = err.message;
                     errorDiv.style.display = 'block';

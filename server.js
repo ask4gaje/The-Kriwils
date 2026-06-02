@@ -336,7 +336,7 @@ const server = http.createServer(async (req, res) => {
                 {
                     type: 'recovery',
                     email,
-                    redirect_to: `${getOrigin(req)}/updatepassword.html`
+                    redirect_to: `${getOrigin(req)}/updatepassword`
                 }
             );
 
@@ -630,13 +630,24 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    // Pretty URL handling
+    // Pretty URL rewriting
     if (urlPath.startsWith('/play/')) {
         urlPath = '/play.html';
     }
 
     let filePath = path.join(PUBLIC_DIR, urlPath === '/' ? 'join.html' : urlPath);
-    const extname = path.extname(filePath);
+    let extname = path.extname(filePath);
+
+    // Extension-less paths → try appending .html
+    if (!extname) {
+        const htmlFilePath = filePath + '.html';
+        try {
+            fs.accessSync(htmlFilePath, fs.constants.R_OK);
+            filePath = htmlFilePath;
+            extname = '.html';
+        } catch (_) {}
+    }
+
     let contentType = MIME_TYPES[extname] || 'application/octet-stream';
 
     fs.readFile(filePath, (err, content) => {

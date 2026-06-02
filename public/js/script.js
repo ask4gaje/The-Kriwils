@@ -87,7 +87,7 @@ function showPendingUI(title) {
                     You can safely leave this page or stay here.
                 </p>
                 <div class="generator-pending-actions">
-                    <button onclick="window.location.href='quizzes.html'" class="generator-pending-btn">
+                    <button onclick="window.location.href='/quizzes'" class="generator-pending-btn">
                         View Progress in "My Quizzes"
                     </button>
                 </div>

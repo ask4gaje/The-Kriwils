@@ -29,7 +29,7 @@ async function loadMyQuizzes() {
 
     try {
         if (listContainer.innerHTML.includes('spinner') && !listContainer.querySelector('.quiz-card')) {
-             listContainer.innerHTML = `
+            listContainer.innerHTML = `
                 <div class="loading-wrapper loading-wrapper-full">
                     <div class="spinner"></div>
                     <p>Loading your quizzes...</p>
@@ -38,17 +38,37 @@ async function loadMyQuizzes() {
         }
 
         const data = await api('GET', '/api/my-quizzes');
-        const quizzes = data.quizzes;
+        let quizzes = data.quizzes || [];
 
         if (!quizzes || quizzes.length === 0) {
             listContainer.innerHTML = `
                 <div class="stats-empty quizzes-empty">
                     <div class="stats-empty-emoji">🎓</div>
                     <p class="stats-empty-text">No quizzes yet — create your first one!</p>
-                    <button onclick="window.location.href='index.html'" class="empty-state-btn">Create Quiz</button>
+                    <button onclick="window.location.href='/index'" class="empty-state-btn">Create Quiz</button>
                 </div>
             `;
             return;
+        }
+
+        const search = document.getElementById('quizSearch').value.trim().toLowerCase();
+        const sort = document.getElementById('quizSort').value;
+
+        if (search) {
+            quizzes = quizzes.filter(q => {
+                const title = (q.title || '').toLowerCase();
+                const topic = (q.topic || '').toLowerCase();
+                return title.includes(search) || topic.includes(search);
+            });
+        }
+
+        if (sort === 'questions') {
+            quizzes.sort((a, b) => (b.questions_json || []).length - (a.questions_json || []).length);
+        } else if (sort === 'hardest') {
+            const order = { hard: 3, medium: 2, easy: 1 };
+            quizzes.sort((a, b) => (order[b.difficulty] || 0) - (order[a.difficulty] || 0));
+        } else {
+            quizzes.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         }
 
         listContainer.innerHTML = quizzes.map((quiz, index) => {
@@ -57,11 +77,12 @@ async function loadMyQuizzes() {
             const questionCount = quiz.questions_json ? quiz.questions_json.length : 0;
             const shareLink = quiz.short_code 
                 ? `${window.location.origin}/play/${quiz.short_code}`
-                : `${window.location.origin}/play.html?quiz=${quiz.id}`;
+                : `${window.location.origin}/play?quiz=${quiz.id}`;
+            const diffClass = `quiz-card-difficulty-${quiz.difficulty || 'medium'}`;
 
             if (isPending) {
                 return `
-                    <div class="quiz-card quiz-card-pending" style="animation-delay: ${index * 0.1}s">
+                    <div class="quiz-card quiz-card-pending ${diffClass}" style="animation-delay: ${index * 0.1}s">
                         <div class="quiz-card-header">
                             <div class="quiz-card-topic quiz-card-pending-topic">⏳ Generating: ${escapeHtml(quizTitle)}</div>
                             <div class="quiz-card-meta">AI is writing your questions...</div>
@@ -74,8 +95,10 @@ async function loadMyQuizzes() {
                 `;
             }
 
+            const createdTime = quiz.created_at ? timeAgo(quiz.created_at) : '';
+
             return `
-                <div class="quiz-card" style="animation-delay: ${index * 0.1}s">
+                <div class="quiz-card ${diffClass}" style="animation-delay: ${index * 0.1}s">
                     <div class="card-top-actions">
                         <button class="btn-edit" onclick="openEditModal('${quiz.id}')">Edit</button>
                         <button class="btn-utility" onclick="exportToPDF('${quiz.id}')">Print</button>
@@ -83,8 +106,9 @@ async function loadMyQuizzes() {
                     <div class="quiz-card-header">
                         <div class="quiz-card-topic">${escapeHtml(quizTitle)}</div>
                         <div class="quiz-card-meta">Topic: ${escapeHtml(quiz.topic)}</div>
-                        ${quiz.short_code ? `<div class="quiz-card-meta">Code: ${escapeHtml(quiz.short_code)}</div>` : ''}
+                        ${quiz.short_code ? `<div class="quiz-card-meta quiz-card-code-row">Code: ${escapeHtml(quiz.short_code)} <button onclick="event.stopPropagation();copyToClipboard('${quiz.short_code}');event.stopPropagation()">📋</button></div>` : ''}
                         <div class="quiz-card-meta">${quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)} • ${questionCount} Questions${quiz.time_limit_seconds ? ' • ' + quiz.time_limit_seconds + 's/q' : ''}</div>
+                        ${createdTime ? `<div class="quiz-card-timestamp">Created ${createdTime}</div>` : ''}
                     </div>
                     <div class="quiz-card-actions">
                         <button onclick="showStats('${quiz.id}', '${quizTitle.replace(/'/g, "\\'")}')" class="btn btn-primary">Stats</button>
@@ -95,7 +119,6 @@ async function loadMyQuizzes() {
             `;
         }).join('');
 
-        // If there's a pending quiz, refresh the list again in 5 seconds
         if (quizzes.some(q => q.status === 'pending')) {
             setTimeout(loadMyQuizzes, 5000);
         }
@@ -104,6 +127,12 @@ async function loadMyQuizzes() {
         console.error('Error loading quizzes:', err);
         listContainer.innerHTML = '<p class="error-state">Failed to load your quizzes.</p>';
     }
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast("Code copied!", 'info');
+    }).catch(() => {});
 }
 
 /**
@@ -571,9 +600,65 @@ async function exportToPDF(quizId) {
     }
 }
 
+let isListView = false;
+
+function toggleView() {
+    const grid = document.getElementById('quizzesList');
+    const btn = document.getElementById('viewToggle');
+    isListView = !isListView;
+    if (isListView) {
+        grid.classList.add('list-view');
+        btn.textContent = '⊞ Grid';
+    } else {
+        grid.classList.remove('list-view');
+        btn.textContent = '☰ List';
+    }
+}
+
+async function loadActivityFeed() {
+    const container = document.getElementById('activityFeed');
+    if (!container) return;
+
+    try {
+        const data = await api('GET', '/api/my-quizzes');
+        const quizzes = data.quizzes || [];
+        if (!quizzes.length) return;
+
+        const client = await getSupabase();
+        const ids = quizzes.map(q => q.id);
+        const { data: results } = await client
+            .from('quiz_results')
+            .select('player_name, score, total_questions, created_at, quiz_id')
+            .in('quiz_id', ids)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        if (!results || !results.length) return;
+
+        container.classList.remove('hidden');
+        const quizMap = {};
+        quizzes.forEach(q => { quizMap[q.id] = q.title || q.topic; });
+
+        container.innerHTML = '<h2>Recent Activity</h2>' + results.map(r => {
+            const pct = Math.round((r.score / r.total_questions) * 100);
+            const quizTitle = quizMap[r.quiz_id] || 'a quiz';
+            return `
+                <div class="activity-item">
+                    <span class="activity-icon">${pct >= 80 ? '🏆' : pct >= 50 ? '👍' : '📝'}</span>
+                    <span class="activity-text"><strong>${escapeHtml(r.player_name)}</strong> scored ${pct}% on ${escapeHtml(quizTitle)}</span>
+                    <span class="activity-time">${timeAgo(r.created_at)}</span>
+                </div>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error('Error loading activity:', err);
+    }
+}
+
 // Load quizzes on initial page load
 document.addEventListener('DOMContentLoaded', () => {
     loadMyQuizzes();
+    loadActivityFeed();
 
     const quickInput = document.getElementById('quickQuizCode');
     const quickBtn = document.getElementById('quickJoinBtn');
@@ -591,5 +676,20 @@ document.addEventListener('DOMContentLoaded', () => {
         quickInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') join();
         });
+    }
+
+    const searchInput = document.getElementById('quizSearch');
+    const sortSelect = document.getElementById('quizSort');
+
+    if (searchInput) {
+        let searchTimer;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(loadMyQuizzes, 300);
+        });
+    }
+
+    if (sortSelect) {
+        sortSelect.addEventListener('change', loadMyQuizzes);
     }
 });
