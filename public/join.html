@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
 </head>
 <body>
-    <nav>
+    <nav aria-label="Main navigation">
         <a href="index.html" class="nav-brand">The Kriwils</a>
         <ul class="nav-links">
             <!-- Dynamically populated by auth.js -->
@@ -29,7 +29,7 @@
                 
                 <div class="join-input-wrapper">
                     <label for="joinQuizCode" class="join-input-label">Quiz Code</label>
-                    <input type="text" id="joinQuizCode" class="join-input-large" placeholder="KRIWIL" maxlength="6">
+                    <input type="text" id="joinQuizCode" class="join-input-large" placeholder="KRIWIL" maxlength="6" autocomplete="off">
                 </div>
                 <button id="joinBtn">Enter Quiz</button>
             </div>

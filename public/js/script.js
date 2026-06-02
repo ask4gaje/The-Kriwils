@@ -79,15 +79,15 @@ function showPendingUI(title) {
     if (resultsDiv) {
         resultsDiv.style.display = "block";
         resultsDiv.innerHTML = `
-            <div style="background: #ecfdf5; padding: 2rem; border-radius: 1rem; border: 1px solid #10b981; margin-top: 2rem; text-align: center;">
-                <div class="spinner" style="border-color: #10b981; border-top-color: transparent; margin-bottom: 1rem;"></div>
-                <h3 style="color: #065f46; margin-bottom: 0.5rem;">🚀 Background Generation Started!</h3>
-                <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1.5rem;">
+            <div class="generator-pending">
+                <div class="spinner spinner-green"></div>
+                <h3 class="generator-pending-heading">🚀 Background Generation Started!</h3>
+                <p class="generator-pending-text">
                     We are crafting <strong>${escapeHtml(title)}</strong> right now. 
                     You can safely leave this page or stay here.
                 </p>
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                    <button onclick="window.location.href='quizzes.html'" style="width: auto; padding: 0.75rem 1.5rem; background: #10b981; color: white; border-radius: 0.5rem; font-weight: 600; border: none; cursor: pointer;">
+                <div class="generator-pending-actions">
+                    <button onclick="window.location.href='quizzes.html'" class="generator-pending-btn">
                         View Progress in "My Quizzes"
                     </button>
                 </div>
@@ -122,22 +122,22 @@ async function pollQuizStatus(quizId, title) {
             
             if (resultsDiv) {
                 resultsDiv.innerHTML = `
-                    <div style="background: #ecfdf5; padding: 2rem; border-radius: 1rem; border: 1px solid #10b981; margin-top: 2rem; text-align: center;">
-                        <h3 style="color: #065f46; margin-bottom: 0.5rem;">✨ Quiz Generated Successfully!</h3>
-                        <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1.5rem;">Your quiz <strong>${escapeHtml(title)}</strong> is ready.</p>
+                    <div class="generator-success">
+                        <h3 class="generator-success-heading">✨ Quiz Generated Successfully!</h3>
+                        <p class="generator-success-text">Your quiz <strong>${escapeHtml(title)}</strong> is ready.</p>
                         
-                        <div style="background: white; padding: 1.5rem; border-radius: 0.75rem; border: 2px dashed #10b981; margin-bottom: 1.5rem; display: inline-block; min-width: 200px;">
-                            <p style="font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;">Quiz Code</p>
-                            <div style="font-size: 2.5rem; font-weight: 800; color: #059669; font-family: 'Courier New', Courier, monospace; letter-spacing: 0.2rem;">
+                        <div class="generator-code-block">
+                            <p class="generator-code-label">Quiz Code</p>
+                            <div class="generator-code-value">
                                 ${escapeHtml(quiz.short_code)}
                             </div>
                         </div>
 
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                            <button onclick="copyToClipboard('${shareLink}')" style="width: auto; padding: 0.75rem 1.5rem; background: #10b981; color: white; border-radius: 0.5rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.2s;">
+                        <div class="generator-success-actions">
+                            <button onclick="copyToClipboard('${shareLink}')" class="generator-success-btn">
                                 Copy Share Link
                             </button>
-                            <a href="${shareLink}" target="_blank" style="color: #047857; font-weight: 600; font-size: 0.95rem; text-decoration: underline;">
+                            <a href="${shareLink}" target="_blank" class="generator-success-link">
                                 Instant Play Link →
                             </a>
                         </div>
@@ -159,7 +159,7 @@ async function pollQuizStatus(quizId, title) {
             generateBtn.innerText = "Generate Quiz";
         }
         if (resultsDiv) {
-            resultsDiv.innerHTML = `<p style="color: #dc2626; text-align:center; padding: 1rem;">The background generation failed or was cancelled.</p>`;
+            resultsDiv.innerHTML = `<p class="generator-error">The background generation failed or was cancelled.</p>`;
         }
     }
 }
@@ -257,7 +257,7 @@ async function handleGenerateQuiz() {
     } catch (err) {
         console.error('Generation Error:', err);
         showToast(err.message, 'error');
-        resultsDiv.innerHTML = `<p style="color: #dc2626; text-align:center; padding: 1rem;">Error: ${err.message}</p>`;
+        resultsDiv.innerHTML = `<p class="generator-error">Error: ${err.message}</p>`;
         
         isGenerating = false;
         generateBtn.disabled = false;

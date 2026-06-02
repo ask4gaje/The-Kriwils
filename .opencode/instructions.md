@@ -25,16 +25,25 @@ Key files: server.js, public/js/{auth,script,quizzes,play}.js,
 7. Write concise, self-documenting code. Meaningful names, no dead code.
 8. Always use `===`/`!==`, `const` over `let`, `parseInt(val, 10)`.
 
+## VERIFICATION
+
+9.  Never assume API behavior. Before writing code that depends on a
+    third-party response shape (Supabase, Gemini, etc.), either:
+    a) Test the actual response via curl or browser console first, or
+    b) Ask the user to verify the assumption before implementing.
+    Do not guess response field names, error conditions, or edge case
+    behavior — ask or test.
+
 ## WORKFLOW
 
-9. Before implementing any feature or major change:
+10. Before implementing any feature or major change:
    a) Smoke-test existing flow for regressions.
    b) Read every file the change touches.
    c) Trace data flow: client → server → DB → back.
    d) List all files that will change.
    e) Present plan to user before writing code.
 
-10. After implementing: run `node --check <file>` on every modified .js file,
+11. After implementing: run `node --check <file>` on every modified .js file,
     restart server, and provide a numbered test procedure with expected results.
 
 ## COMMITS

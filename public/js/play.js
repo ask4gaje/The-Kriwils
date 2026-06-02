@@ -11,13 +11,13 @@ let timerInterval = null;
 
 function showErrorUI(message) {
     const loadingDiv = document.getElementById('loading');
-    loadingDiv.className = ''; // remove loading-wrapper styling
+    loadingDiv.className = '';
     loadingDiv.innerHTML = `
-        <div class="quiz-container" style="text-align: center; max-width: 400px; margin: 0 auto; border-top: 4px solid #ef4444;">
-            <div style="font-size: 3.5rem; margin-bottom: 1rem;">🤔</div>
-            <h2 style="color: #111827; margin-bottom: 0.75rem;">Oops! Quiz Not Found</h2>
-            <p style="color: var(--text-muted); margin-bottom: 2rem;">${escapeHtml(message)}</p>
-            <button onclick="window.location.href='/join.html'" style="background: #111827; width: 100%;">Try Another Code</button>
+        <div class="quiz-container error-container">
+            <div class="error-emoji">🤔</div>
+            <h2 class="error-heading">Oops! Quiz Not Found</h2>
+            <p class="error-text">${escapeHtml(message)}</p>
+            <button onclick="window.location.href='join.html'" class="error-btn">Try Another Code</button>
         </div>
     `;
 }
@@ -83,10 +83,10 @@ async function loadQuiz() {
         if (savedName) {
             playerName = savedName;
             document.getElementById('namePrompt').innerHTML = `
-                <h2 style="margin-bottom: 1rem;">Selamat Datang Kembali, ${playerName}!</h2>
-                <p style="margin-bottom: 2rem;">Siap untuk mencoba lagi dan meningkatkan skor Anda?</p>
+                <h2 class="name-prompt-welcome-heading">Selamat Datang Kembali, ${escapeHtml(playerName)}!</h2>
+                <p class="name-prompt-welcome-text">Siap untuk mencoba lagi dan meningkatkan skor Anda?</p>
                 <button onclick="startQuiz()">Mulai Kuis</button>
-                <p style="margin-top: 1.5rem; font-size: 0.8125rem; color: var(--text-muted); cursor: pointer; text-decoration: underline;" onclick="clearSavedName()">Bukan Anda? Ganti Nama</p>
+                <p class="name-prompt-switch" onclick="clearSavedName()">Bukan Anda? Ganti Nama</p>
             `;
         }
 
@@ -198,7 +198,7 @@ function startTimer() {
         const pct = (timeLeft / total) * 100;
         bar.style.width = `${pct}%`;
         if (timeLeft <= 5) {
-            bar.style.background = '#ef4444';
+            bar.style.background = 'var(--danger-hover)';
         }
         if (timeLeft <= 0) {
             clearInterval(timerInterval);

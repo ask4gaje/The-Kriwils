@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
 </head>
 <body>
-    <nav>
+    <nav aria-label="Main navigation">
         <a href="index.html" class="nav-brand">The Kriwils</a>
         <ul class="nav-links">
             <!-- Dynamically populated by auth.js -->
@@ -79,9 +79,12 @@
                 if (error) {
                     errorDiv.innerText = error.message;
                     errorDiv.style.display = "block";
-                } else {
-                    const needsConfirmation = !data.session;
-                    if (needsConfirmation) {
+                } else if (!data.session && data.user) {
+                    const isNew = Date.now() - new Date(data.user.created_at).getTime() < 10000;
+                    if (!isNew) {
+                        errorDiv.innerText = "An account with this email already exists. Check your inbox or reset your password.";
+                        errorDiv.style.display = "block";
+                    } else {
                         successDiv.style.color = '#d97706';
                         successDiv.innerHTML = 'A confirmation email has been sent. '
                             + '<strong>You must verify your email before signing in.</strong>'
@@ -99,7 +102,8 @@
                                 resendMsg.style.display = "block";
                             }
                         };
-                    } else {
+                    }
+                } else {
                         successDiv.style.color = '#059669';
                         successDiv.innerText = "Account created! You can now log in.";
                         successDiv.style.display = "block";
@@ -107,7 +111,6 @@
                             window.location.href = 'login.html';
                         }, 2000);
                     }
-                }
             } catch (err) {
                 errorDiv.innerText = err.message;
                 errorDiv.style.display = "block";

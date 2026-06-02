@@ -30,7 +30,7 @@ async function loadMyQuizzes() {
     try {
         if (listContainer.innerHTML.includes('spinner') && !listContainer.querySelector('.quiz-card')) {
              listContainer.innerHTML = `
-                <div class="loading-wrapper" style="grid-column: 1/-1;">
+                <div class="loading-wrapper loading-wrapper-full">
                     <div class="spinner"></div>
                     <p>Loading your quizzes...</p>
                 </div>
@@ -41,7 +41,7 @@ async function loadMyQuizzes() {
         const quizzes = data.quizzes;
 
         if (!quizzes || quizzes.length === 0) {
-            listContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted); grid-column: 1/-1;">You haven\'t generated any quizzes yet.</p>';
+            listContainer.innerHTML = '<p class="empty-state">You haven\'t generated any quizzes yet.</p>';
             return;
         }
 
@@ -55,14 +55,14 @@ async function loadMyQuizzes() {
 
             if (isPending) {
                 return `
-                    <div class="quiz-card" style="animation-delay: ${index * 0.1}s; border-style: dashed; opacity: 0.8;">
+                    <div class="quiz-card quiz-card-pending" style="animation-delay: ${index * 0.1}s">
                         <div class="quiz-card-header">
-                            <div class="quiz-card-topic" style="color: var(--primary-color)">⏳ Generating: ${escapeHtml(quizTitle)}</div>
+                            <div class="quiz-card-topic quiz-card-pending-topic">⏳ Generating: ${escapeHtml(quizTitle)}</div>
                             <div class="quiz-card-meta">AI is writing your questions...</div>
-                            <div class="spinner" style="width: 20px; height: 20px; border-width: 2px; margin: 1rem 0 0 0;"></div>
+                            <div class="spinner quiz-card-pending-spinner"></div>
                         </div>
                         <div class="quiz-card-actions">
-                            <button disabled class="btn btn-secondary" style="cursor: not-allowed; opacity: 0.5;">Please wait...</button>
+                            <button disabled class="btn btn-secondary quiz-card-pending-btn">Please wait...</button>
                         </div>
                     </div>
                 `;
@@ -96,7 +96,7 @@ async function loadMyQuizzes() {
 
     } catch (err) {
         console.error('Error loading quizzes:', err);
-        listContainer.innerHTML = '<p style="text-align: center; color: #dc2626; grid-column: 1/-1;">Failed to load your quizzes.</p>';
+        listContainer.innerHTML = '<p class="error-state">Failed to load your quizzes.</p>';
     }
 }
 
@@ -127,7 +127,7 @@ async function openEditModal(quizId) {
     const container = document.getElementById('editFormContainer');
     const saveBtn = document.getElementById('saveEditBtn');
 
-    container.innerHTML = '<p style="text-align: center;">Loading quiz content...</p>';
+    container.innerHTML = '<p class="loading-text-centered">Loading quiz content...</p>';
     saveBtn.disabled = true;
     modal.style.display = 'flex';
 
@@ -139,13 +139,13 @@ async function openEditModal(quizId) {
         saveBtn.disabled = false;
 
         let html = `
-            <div class="edit-q-block" style="background: #fdf2f2; border-color: #fecaca;">
+            <div class="edit-q-block edit-settings-block">
                 <h4>General Settings</h4>
                 <div class="form-group">
                     <label>Quiz Title</label>
                     <input type="text" id="editQuizTitle" value="${(quiz.title || quiz.topic || "").replace(/"/g, '&quot;')}">
                 </div>
-                <div class="checkbox-group" style="margin-top: 1rem;">
+                <div class="checkbox-group edit-margin-top">
                     <label>
                         <input type="checkbox" id="editIsReplayable" ${quiz.is_replayable ? 'checked' : ''}> Allow students to replay this quiz
                     </label>
@@ -153,7 +153,7 @@ async function openEditModal(quizId) {
                         <input type="checkbox" id="editIsReviewable" ${quiz.is_reviewable ? 'checked' : ''}> Allow students to review answers
                     </label>
                 </div>
-                <div class="form-group" style="margin-top: 1rem;">
+                <div class="form-group edit-margin-top">
                     <label>Time per Question</label>
                     <select id="editTimeLimit">
                         <option value="0" ${!quiz.time_limit_seconds ? 'selected' : ''}>No Limit</option>
@@ -173,7 +173,7 @@ async function openEditModal(quizId) {
                     <label>Question Text</label>
                     <input type="text" class="edit-q-text" value="${q.question.replace(/"/g, '&quot;')}">
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="edit-options-grid">
                     ${q.options.map((opt, oIndex) => `
                         <div class="form-group">
                             <label>Option ${oIndex + 1}</label>
@@ -189,7 +189,7 @@ async function openEditModal(quizId) {
                 </div>
                 <div class="form-group">
                     <label>Explanation</label>
-                    <textarea class="edit-explanation" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; height: 80px;">${q.explanation || ''}</textarea>
+                    <textarea class="edit-explanation">${q.explanation || ''}</textarea>
                 </div>
             </div>
         `).join('');
@@ -198,7 +198,7 @@ async function openEditModal(quizId) {
 
     } catch (err) {
         console.error('Error loading quiz for edit:', err);
-        container.innerHTML = '<p style="color: #dc2626; text-align: center;">Failed to load quiz content.</p>';
+        container.innerHTML = '<p class="error-state">Failed to load quiz content.</p>';
     }
 }
 
@@ -284,7 +284,7 @@ async function showStats(quizId, topic, viewAll = false, page = 1) {
     const modalTitle = document.getElementById('modalTitle');
 
     modalTitle.innerText = viewAll ? `All Scores: ${topic}` : `Top 5 Leaderboard: ${topic}`;
-    container.innerHTML = '<p style="text-align: center;">Loading results...</p>';
+    container.innerHTML = '<p class="loading-text-centered">Loading results...</p>';
     modal.style.display = 'flex';
 
     try {
@@ -339,9 +339,9 @@ async function showStats(quizId, topic, viewAll = false, page = 1) {
         if (!results || results.length === 0) {
             container.innerHTML = `
                 <div class="stats-empty">
-                    <div style="font-size: 3rem; margin-bottom: 0.75rem;">📊</div>
-                    <p style="color: var(--text-muted); margin-bottom: 1rem;">No one has played this quiz yet.</p>
-                    <p style="font-size: 0.8125rem; color: var(--text-muted);">Share the quiz code to get started!</p>
+                    <div class="stats-empty-emoji">📊</div>
+                    <p class="stats-empty-text">No one has played this quiz yet.</p>
+                    <p class="stats-empty-subtext">Share the quiz code to get started!</p>
                 </div>
             `;
             return;
@@ -408,7 +408,7 @@ async function showStats(quizId, topic, viewAll = false, page = 1) {
         `;
     } catch (err) {
         console.error('Error loading stats:', err);
-        container.innerHTML = '<p style="color: #dc2626; text-align: center;">Failed to load stats.</p>';
+        container.innerHTML = '<p class="error-state">Failed to load stats.</p>';
     }
 }
 

@@ -12,7 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
-    <nav>
+    <nav aria-label="Main navigation">
         <a href="index.html" class="nav-brand">The Kriwils</a>
         <ul class="nav-links">
             <!-- Dynamically populated by auth.js -->
@@ -29,12 +29,12 @@
             <div class="generator-form">
                 <div class="form-group">
                     <label for="quizTitle">Quiz Title</label>
-                    <input type="text" id="quizTitle" placeholder="e.g., My Awesome Retro Quiz">
+                    <input type="text" id="quizTitle" placeholder="e.g., My Awesome Retro Quiz" autocomplete="off">
                 </div>
 
                 <div class="form-group">
                     <label for="quizTopic">Topic</label>
-                    <input type="text" id="quizTopic" placeholder="e.g., Space Exploration, 80s Rock, Quantum Physics">
+                    <input type="text" id="quizTopic" placeholder="e.g., Space Exploration, 80s Rock, Quantum Physics" autocomplete="off">
                 </div>
 
                 <div class="form-group">
@@ -86,28 +86,6 @@
 
             <div id="quizResults" class="quiz-results">
                 <!-- Results will appear here -->
-            </div>
-        </section>
-
-        <!-- How it Works Section -->
-        <section class="how-it-works">
-            <h2>How it Works</h2>
-            <div class="steps-grid">
-                <div class="step-card">
-                    <div class="step-number">1</div>
-                    <h3>Pick a Topic</h3>
-                    <p>Enter any subject or upload a PDF. Gemini AI will read it for you.</p>
-                </div>
-                <div class="step-card">
-                    <div class="step-number">2</div>
-                    <h3>AI Generates</h3>
-                    <p>Our AI crafts unique questions, options, and explanations in seconds.</p>
-                </div>
-                <div class="step-card">
-                    <div class="step-number">3</div>
-                    <h3>Play & Share</h3>
-                    <p>Get a unique code, share it with others, and see who scores highest!</p>
-                </div>
             </div>
         </section>
     </main>

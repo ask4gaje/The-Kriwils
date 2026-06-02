@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="/">
     <title>Playing Quiz - The Kriwils</title>
     <link rel="stylesheet" href="css/style.css?v=1.4">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 </head>
 <body class="quiz-page">
-    <nav>
+    <nav aria-label="Main navigation">
         <a href="index.html" class="nav-brand">The Kriwils</a>
         <ul class="nav-links">
             <!-- Dynamically populated by auth.js -->
@@ -40,7 +41,7 @@
             <p class="name-prompt-text">Please enter your name to start the quiz and save your score.</p>
             <form id="playerNameForm">
             <div class="form-group">
-                <input type="text" id="playerName" placeholder="Your Name" class="name-prompt-input">
+                <input type="text" id="playerName" placeholder="Your Name" class="name-prompt-input" autocomplete="name">
                 <button type="submit" onclick="startQuiz()">Start Quiz</button>
             </div>
             </form>
