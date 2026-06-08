@@ -137,20 +137,135 @@ nav a.active {
     border-bottom-color: var(--primary-color);
 }
 
-.btn-logout {
-    width: auto;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    background: var(--danger-bg);
-    color: var(--danger-color);
-    border: 1px solid var(--danger-border);
-    box-shadow: none;
+/* Account Dropdown */
+.account-dropdown {
+    position: relative;
 }
 
-.btn-logout:hover {
-    background: var(--danger-hover);
+.btn-account {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: auto;
+    padding: 0.375rem 0.75rem 0.375rem 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    background: transparent;
+    color: var(--text-main);
+    border: none;
+    border-radius: 999px;
+    box-shadow: none;
+    cursor: pointer;
+    transition: background 0.15s;
+    max-width: 200px;
+    line-height: 1;
+}
+
+.btn-account:hover {
+    background: var(--bg-color);
+    transform: none;
+}
+
+.btn-account:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--primary-color);
     color: white;
-    box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.2);
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: 0.025em;
+}
+
+.account-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chevron {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+    opacity: 0.5;
+    width: 16px;
+    height: 16px;
+}
+
+.btn-account:hover .chevron {
+    opacity: 0.8;
+}
+
+.account-dropdown.open .chevron {
+    transform: rotate(180deg);
+    opacity: 0.8;
+}
+
+.account-dropdown-menu {
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-lg);
+    min-width: 180px;
+    z-index: 200;
+    overflow: hidden;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.account-dropdown.open .account-dropdown-menu {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.account-dropdown-menu a,
+.account-dropdown-menu button {
+    display: block;
+    width: 100%;
+    padding: 0.7rem 1rem;
+    font-size: 0.875rem;
+    text-align: left;
+    background: transparent;
+    color: var(--text-main);
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.account-dropdown-menu a:hover {
+    background: var(--bg-color);
+    color: var(--primary-color);
+    transform: none;
+}
+
+.dropdown-divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 0.25rem 0;
+}
+
+.dropdown-logout:hover {
+    background: var(--danger-bg);
+    color: var(--danger-color);
+    transform: none;
 }
 
 .btn-login {
@@ -423,7 +538,7 @@ nav button:hover {
 
 /* My Quizzes Section */
 .my-quizzes {
-    margin-top: 4rem;
+    margin-top: var(--space-3xl);
 }
 
 .my-quizzes h2 {
@@ -1108,7 +1223,7 @@ nav button:hover {
 .quizzes-quick-join {
     display: flex;
     gap: var(--space-md);
-    margin-bottom: var(--space-4xl);
+    margin-bottom: var(--space-3xl);
 }
 
 .quizzes-quick-join input {
@@ -1663,7 +1778,21 @@ nav button:hover {
     border-color: rgba(5, 150, 105, 0.3);
 }
 
-[data-theme="dark"] .btn-logout:hover,
+/* Dark mode dropdown */
+[data-theme="dark"] .btn-account:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .account-dropdown-menu {
+    background: var(--card-bg);
+}
+[data-theme="dark"] .account-dropdown-menu a:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+[data-theme="dark"] .dropdown-logout:hover {
+    background: rgba(220, 38, 38, 0.15);
+    color: var(--danger-hover);
+}
+
 [data-theme="dark"] .btn-danger:hover {
     background: var(--danger-hover);
     box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.3);
@@ -1815,18 +1944,17 @@ nav button:hover {
     background: rgba(5, 150, 105, 0.2);
 }
 
-.quizzes-toolbar {
+.quiz-controls {
     display: flex;
     gap: var(--space-md);
-    margin-bottom: var(--space-3xl);
-    align-items: center;
+    margin-bottom: var(--space-2xl);
 }
 
-.quizzes-toolbar input {
+.quiz-controls input {
     flex: 1;
 }
 
-.quizzes-toolbar select {
+.quiz-controls select {
     width: auto;
     font-size: var(--text-sm);
 }
@@ -1891,26 +2019,6 @@ nav button:hover {
     color: var(--text-muted);
 }
 
-.quiz-card-code-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-}
-
-.quiz-card-code-row button {
-    width: auto;
-    padding: 0.15rem 0.4rem;
-    font-size: var(--text-xs);
-    background: var(--border-color);
-    color: var(--text-muted);
-    border: none;
-    box-shadow: none;
-}
-.quiz-card-code-row button:hover {
-    background: var(--primary-color);
-    color: white;
-}
-
 .activity-feed {
     margin-top: var(--space-4xl);
 }
@@ -1956,7 +2064,7 @@ nav button:hover {
 }
 
 @media (max-width: 640px) {
-    .quizzes-toolbar {
+    .quiz-controls {
         flex-wrap: wrap;
     }
     .quizzes-grid.list-view .quiz-card {

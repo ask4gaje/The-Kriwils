@@ -24,5 +24,8 @@ GEMINI.md
 CODE_EXPLAINED.md
 .geminiignore
 
+# RPM packages
+*.rpm
+
 # Environment Variables
 .env

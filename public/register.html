@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - The Kriwils</title>
-    <link rel="stylesheet" href="css/style.css?v=1.5">
+    <link rel="stylesheet" href="css/style.css?v=1.6">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
 </head>
 <body>
     <nav aria-label="Main navigation">
-        <a href="/index" class="nav-brand">The Kriwils</a>
+        <a href="/create" class="nav-brand">The Kriwils</a>
         <ul class="nav-links">
             <!-- Dynamically populated by auth.js -->
         </ul>
@@ -30,7 +30,7 @@
                 <input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email">
             </div>
             <div class="form-group">
-                <label for="regDisplayName">Display Name (optional)</label>
+                <label for="regDisplayName">Display Name</label>
                 <input type="text" id="regDisplayName" placeholder="How others will see you" autocomplete="name">
             </div>
             <div class="form-group">
@@ -46,7 +46,7 @@
         </div>
     </div>
 
-    <script src="js/auth.js?v=1.5"></script>
+    <script src="js/auth.js?v=1.6"></script>
     <script>
         document.getElementById('registerForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -62,8 +62,8 @@
             const resendMsg = document.getElementById('resendMsg');
             const regBtn = document.getElementById('doRegister');
 
-            if (!email || !pwd) {
-                errorDiv.innerText = "Email and password are required.";
+            if (!email || !displayName || !pwd) {
+                errorDiv.innerText = "All fields are required.";
                 errorDiv.style.display = "block";
                 return;
             }

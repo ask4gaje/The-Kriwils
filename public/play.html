@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/">
     <title>Playing Quiz - The Kriwils</title>
-    <link rel="stylesheet" href="css/style.css?v=1.5">
+    <link rel="stylesheet" href="css/style.css?v=1.6">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
 </head>
 <body class="quiz-page">
     <nav aria-label="Main navigation">
-        <a href="/index" class="nav-brand">The Kriwils</a>
+        <a href="/create" class="nav-brand">The Kriwils</a>
         <ul class="nav-links">
             <!-- Dynamically populated by auth.js -->
         </ul>
@@ -32,7 +32,7 @@
         <div id="alreadyPlayed" class="quiz-container hidden">
             <h2 class="already-played-heading">Quiz Already Completed</h2>
             <p class="already-played-text">This quiz does not allow replays. You have already submitted your score for this session.</p>
-            <button onclick="window.location.href='/index'">Back to Home</button>
+            <button onclick="window.location.href='/create'">Back to Home</button>
         </div>
 
         <!-- Pre-Quiz: Name Prompt -->
@@ -73,7 +73,7 @@
             <div class="results-actions">
                 <button id="replayBtn" onclick="location.reload()">Try Again</button>
                 <button id="reviewBtn" onclick="showReview()" class="btn-review hidden">Review Answers</button>
-                <button onclick="window.location.href='/index'" class="btn-muted">Back to Home</button>
+                <button onclick="window.location.href='/create'" class="btn-muted">Back to Home</button>
             </div>
         </div>
 
@@ -85,8 +85,8 @@
         </div>
     </main>
 
-    <script src="js/auth.js?v=1.5"></script>
-    <script src="js/play.js?v=1.5"></script>
+    <script src="js/auth.js?v=1.6"></script>
+    <script src="js/play.js?v=1.6"></script>
     <script>
         document.getElementById('playerNameForm').addEventListener('submit', function(e) {
             e.preventDefault();

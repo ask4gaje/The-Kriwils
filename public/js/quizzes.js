@@ -44,8 +44,8 @@ async function loadMyQuizzes() {
             listContainer.innerHTML = `
                 <div class="stats-empty quizzes-empty">
                     <div class="stats-empty-emoji">🎓</div>
-                    <p class="stats-empty-text">No quizzes yet — create your first one!</p>
-                    <button onclick="window.location.href='/index'" class="empty-state-btn">Create Quiz</button>
+                    <p class="stats-empty-text">No quizzes yet, create your first one!</p>
+                    <button onclick="window.location.href='/create'" class="empty-state-btn">Create Quiz</button>
                 </div>
             `;
             return;
@@ -106,7 +106,7 @@ async function loadMyQuizzes() {
                     <div class="quiz-card-header">
                         <div class="quiz-card-topic">${escapeHtml(quizTitle)}</div>
                         <div class="quiz-card-meta">Topic: ${escapeHtml(quiz.topic)}</div>
-                        ${quiz.short_code ? `<div class="quiz-card-meta quiz-card-code-row">Code: ${escapeHtml(quiz.short_code)} <button onclick="event.stopPropagation();copyToClipboard('${quiz.short_code}');event.stopPropagation()">📋</button></div>` : ''}
+                        ${quiz.short_code ? `<div class="quiz-card-meta">Code: ${escapeHtml(quiz.short_code)}</div>` : ''}
                         <div class="quiz-card-meta">${quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)} • ${questionCount} Questions${quiz.time_limit_seconds ? ' • ' + quiz.time_limit_seconds + 's/q' : ''}</div>
                         ${createdTime ? `<div class="quiz-card-timestamp">Created ${createdTime}</div>` : ''}
                     </div>
@@ -127,12 +127,6 @@ async function loadMyQuizzes() {
         console.error('Error loading quizzes:', err);
         listContainer.innerHTML = '<p class="error-state">Failed to load your quizzes.</p>';
     }
-}
-
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showToast("Code copied!", 'info');
-    }).catch(() => {});
 }
 
 /**

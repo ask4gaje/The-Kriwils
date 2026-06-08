@@ -4,15 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Kriwils - My Quizzes</title>
-    <link rel="stylesheet" href="css/style.css?v=1.5">
+    <link rel="stylesheet" href="css/style.css?v=1.6">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+    <style>body { visibility: hidden; }</style>
 </head>
 <body>
     <nav aria-label="Main navigation">
-        <a href="/index" class="nav-brand">The Kriwils</a>
+        <a href="/create" class="nav-brand">The Kriwils</a>
         <ul class="nav-links">
             <!-- Dynamically populated by auth.js -->
         </ul>
@@ -21,18 +22,19 @@
     <main class="main-wide">
         <div class="quizzes-quick-join">
             <input type="text" id="quickQuizCode" placeholder="Enter quiz code" maxlength="6" autocomplete="off">
-            <button id="quickJoinBtn">Join</button>
-        </div>
-        <div class="quizzes-toolbar">
-            <input type="text" id="quizSearch" placeholder="Search quizzes..." autocomplete="off">
-            <select id="quizSort">
-                <option value="newest">Newest</option>
-                <option value="questions">Most Questions</option>
-                <option value="hardest">Hardest</option>
-            </select>
-            <button id="viewToggle" class="view-toggle" onclick="toggleView()">☰ List</button>
+            <button id="quickJoinBtn">Test</button>
         </div>
         <section id="myQuizzesSection" class="my-quizzes">
+            <h2>Your Recent Quizzes</h2>
+            <div class="quiz-controls">
+                <input type="text" id="quizSearch" placeholder="Search quizzes..." autocomplete="off">
+                <select id="quizSort">
+                    <option value="newest">Newest</option>
+                    <option value="questions">Most Questions</option>
+                    <option value="hardest">Hardest</option>
+                </select>
+                <button id="viewToggle" class="view-toggle" onclick="toggleView()">☰ List</button>
+            </div>
             <div id="quizzesList" class="quizzes-grid">
                 <div class="loading-wrapper loading-wrapper-full">
                     <div class="spinner"></div>
@@ -72,7 +74,7 @@
         </div>
     </main>
 
-    <script src="js/auth.js?v=1.5"></script>
-    <script src="js/quizzes.js?v=1.5"></script>
+    <script src="js/auth.js?v=1.6"></script>
+    <script src="js/quizzes.js?v=1.6"></script>
 </body>
 </html>

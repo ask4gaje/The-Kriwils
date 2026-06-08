@@ -155,13 +155,29 @@ async function renderNavigation() {
     const themeIcon = document.documentElement.dataset.theme === 'dark' ? '☀️' : '🌙';
 
     if (session) {
+        const displayName = session.user.user_metadata?.display_name || session.user.email || 'Account';
+        const nameParts = displayName.trim().split(/\s+/);
+        const initials = nameParts.length > 1
+            ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+            : displayName.slice(0, 2).toUpperCase();
+
         navLinks.innerHTML = `
-            <li><a href="/index" class="${currentPage === 'index' ? 'active' : ''}">Create</a></li>
+            <li><a href="/create" class="${currentPage === 'create' ? 'active' : ''}">Create</a></li>
             <li><a href="/join" class="${currentPage === 'join' ? 'active' : ''}">Play</a></li>
             <li><a href="/quizzes" class="${currentPage === 'quizzes' ? 'active' : ''}">Quiz</a></li>
             <li><a href="/about" class="${currentPage === 'about' ? 'active' : ''}">About</a></li>
-            <li><a href="/account" class="${currentPage === 'account' ? 'active' : ''}">Account</a></li>
-            <li><button onclick="logoutUser()" class="btn-logout">Logout</button></li>
+            <li class="account-dropdown">
+                <button onclick="toggleAccountDropdown(event)" class="btn-account${currentPage === 'account' ? ' active' : ''}">
+                    <span class="avatar">${escapeHtml(initials)}</span>
+                    <span class="account-name">${escapeHtml(displayName)}</span>
+                    <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="account-dropdown-menu">
+                    <a href="/account">Account</a>
+                    <hr class="dropdown-divider">
+                    <button onclick="logoutUser()" class="dropdown-logout">Logout</button>
+                </div>
+            </li>
             <li><button onclick="toggleTheme()" class="btn-theme" aria-label="Toggle theme">${themeIcon}</button></li>
         `;
     } else {
@@ -174,6 +190,17 @@ async function renderNavigation() {
     }
 }
 
+function toggleAccountDropdown(event) {
+    event.stopPropagation();
+    event.currentTarget.closest('.account-dropdown').classList.toggle('open');
+}
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.account-dropdown')) {
+        document.querySelectorAll('.account-dropdown.open').forEach(d => d.classList.remove('open'));
+    }
+});
+
 function toggleTheme() {
     const current = document.documentElement.dataset.theme;
     const next = current === 'dark' ? 'light' : 'dark';
@@ -185,7 +212,7 @@ function toggleTheme() {
 
 // Global protection and nav rendering
 document.addEventListener('DOMContentLoaded', async () => {
-    const protectedPaths = ['index', 'quizzes', 'account'];
+    const protectedPaths = ['create', 'quizzes', 'account'];
     const fullPath = window.location.pathname;
     const pathParts = fullPath.split('/').pop().replace('.html', '').split('?');
     const currentPath = pathParts[0];
@@ -200,7 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkSession().then(session => {
         // 1. Handle root redirection for logged-in users
         if ((fullPath === '/' || fullPath === '') && session) {
-            window.location.href = '/index';
+            window.location.href = '/create';
             return;
         }
 
@@ -210,7 +237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        // 3. Render Nav
+        document.body.style.visibility = 'visible';
         renderNavigation();
     });
 });
