@@ -59,12 +59,6 @@ function getAuthHeader(req) {
     return (auth && auth.startsWith('Bearer ')) ? auth.slice(7) : null;
 }
 
-function getOrigin(req) {
-    const host = req.headers.host || 'localhost:6767';
-    const proto = req.headers['x-forwarded-proto'] || 'http';
-    return `${proto}://${host}`;
-}
-
 /**
  * Helper to make HTTPS requests easily
  */
@@ -292,69 +286,6 @@ const server = http.createServer(async (req, res) => {
         }));
     }
 
-    // API: Send Password Reset Email (validates email existence server-side)
-    if (urlPath === '/api/send-reset-email' && req.method === 'POST') {
-        try {
-            const body = await getBody(req);
-            const email = sanitize(body.email);
-            if (!email) {
-                res.writeHead(400);
-                return res.end(JSON.stringify({ error: 'Email is required.' }));
-            }
-
-            const supabaseUrl = process.env.SUPABASE_URL;
-            const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-            const userResult = await makeRequest(
-                `${supabaseUrl}/auth/v1/admin/users`,
-                {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${serviceKey}`,
-                        'apikey': serviceKey
-                    }
-                }
-            );
-
-            const users = userResult.data?.users || [];
-            const found = users.find(u => u.email === email);
-            if (!found) {
-                res.writeHead(404);
-                return res.end(JSON.stringify({ error: 'No account found with that email address.' }));
-            }
-
-            const response = await makeRequest(
-                `${supabaseUrl}/auth/v1/admin/generate_link`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${serviceKey}`,
-                        'apikey': serviceKey,
-                        'Content-Type': 'application/json'
-                    }
-                },
-                {
-                    type: 'recovery',
-                    email,
-                    redirect_to: `${getOrigin(req)}/updatepassword`
-                }
-            );
-
-            if (response.status !== 200) {
-                console.error('generate_link failed:', response.status, response.data);
-                res.writeHead(500);
-                return res.end(JSON.stringify({ error: 'Failed to send reset email. Please try again.' }));
-            }
-
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: true }));
-        } catch (err) {
-            console.error('/api/send-reset-email error:', err);
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: 'An unexpected error occurred.' }));
-        }
-    }
-
     // DEBUG: List Gemini Models
     if (urlPath === '/api/list-models' && req.method === 'GET') {
         try {
@@ -383,8 +314,10 @@ const server = http.createServer(async (req, res) => {
     // API: Enqueue Background Quiz
     if (urlPath === '/api/enqueue-quiz' && req.method === 'POST') {
         try {
+            const jwt = getAuthHeader(req);
+            if (!jwt) { res.writeHead(401); return res.end(JSON.stringify({ error: 'Missing Authorization header' })); }
             const body = await getBody(req);
-            const user = await verifyUser(body.jwt);
+            const user = await verifyUser(jwt);
             const userId = user.id;
 
             const rateCheck = checkRateLimit(userId);

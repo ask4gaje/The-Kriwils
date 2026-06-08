@@ -95,14 +95,12 @@ async function logoutUser() {
 }
 
 async function resetPassword(email) {
-    const res = await fetch('/api/send-reset-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+    const client = await getSupabase();
+    if (!client) throw new Error("Could not connect to database. Please refresh.");
+    const { error } = await client.auth.resetPasswordForEmail(email, {
+        redirectTo: `${location.origin}/updatepassword`
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to send reset email.');
-    return data;
+    if (error) throw error;
 }
 
 async function deleteAccount() {
@@ -115,6 +113,7 @@ async function deleteAccount() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to delete account');
+    await client.auth.signOut();
     return data;
 }
 
@@ -227,6 +226,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkSession().then(session => {
         // 1. Handle root redirection for logged-in users
         if ((fullPath === '/' || fullPath === '') && session) {
+            if (window.location.hash && window.location.hash.includes('type=recovery')) {
+                window.location.href = '/updatepassword' + window.location.hash;
+                return;
+            }
             window.location.href = '/create';
             return;
         }

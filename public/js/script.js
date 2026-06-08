@@ -227,9 +227,11 @@ async function handleGenerateQuiz() {
         // Call the background enqueue endpoint
         const response = await fetch('/api/enqueue-quiz', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
             body: JSON.stringify({
-                jwt: session.access_token,
                 title,
                 topic,
                 difficulty,
