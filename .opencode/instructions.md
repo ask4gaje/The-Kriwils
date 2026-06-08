@@ -103,6 +103,7 @@ Types: feat, fix, sec, style, chore, docs
 - NO `!important` (fix specificity instead)
 - NO text-only loading (always spinner + text)
 - NO absolute paths (use relative in all HTML/CSS/JS references)
+- NO emojis in UI text, markup, or code strings
 
 ### Breakpoints
 - `@media (max-width: 768px)` — tablet adjustments

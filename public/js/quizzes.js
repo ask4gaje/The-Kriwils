@@ -45,7 +45,7 @@ async function loadMyQuizzes() {
                 <div class="stats-empty quizzes-empty">
                     <div class="stats-empty-emoji">🎓</div>
                     <p class="stats-empty-text">No quizzes yet, create your first one!</p>
-                    <button onclick="window.location.href='/create'" class="empty-state-btn">Create Quiz</button>
+                    <button onclick="window.location.href='/create'" class="empty-state-btn">Create your first quiz</button>
                 </div>
             `;
             return;

@@ -49,6 +49,8 @@
     --text-2xl: 1.5rem;
     --text-3xl: 1.875rem;
     --text-4xl: 2.5rem;
+
+    --content-width: 900px;
 }
 
 [data-theme="dark"] {
@@ -291,7 +293,7 @@ nav a.active {
 
 /* Content */
 main {
-    max-width: 800px;
+    max-width: var(--content-width);
     margin: 4rem auto;
     padding: 0 2rem;
 }
@@ -481,6 +483,106 @@ a:focus-visible, button:focus-visible, .close-modal:focus-visible {
     }
 }
 
+/* PDF Drop Zone */
+.drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3xl);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+    border-color: var(--primary-color);
+    background: #f5f3ff;
+}
+
+[data-theme="dark"] .drop-zone:hover,
+[data-theme="dark"] .drop-zone.drag-over {
+    background: rgba(99, 102, 241, 0.08);
+}
+
+.drop-zone-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: var(--space-md);
+    opacity: 0.6;
+}
+
+.drop-zone-text {
+    font-size: var(--text-base);
+    color: var(--text-muted);
+    margin-bottom: var(--space-sm);
+}
+
+.drop-zone-hint {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+.drop-zone-file {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-lg);
+    padding: var(--space-md);
+    background: var(--bg-color);
+    border-radius: var(--radius-sm);
+}
+
+.drop-zone-file-name {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--text-main);
+}
+
+.drop-zone-file-size {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.drop-zone-remove {
+    width: auto;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-lg);
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    box-shadow: none;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.drop-zone-remove:hover {
+    color: var(--danger-color);
+    transform: none;
+    box-shadow: none;
+}
+
+/* Button Loading State */
+.btn-loading {
+    pointer-events: none;
+    opacity: 0.85;
+    animation: btnPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes btnPulse {
+    0%, 100% { opacity: 0.85; }
+    50% { opacity: 0.65; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .btn-loading {
+        animation: none;
+        opacity: 0.75;
+    }
+
+}
+
 /* Quiz Generator */
 .generator-form {
     background: var(--card-bg);
@@ -489,6 +591,138 @@ a:focus-visible, button:focus-visible, .close-modal:focus-visible {
     border: 1px solid var(--border-color);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     margin-top: 2rem;
+}
+
+.generator-status {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-md);
+    padding: var(--space-2xl) var(--space-3xl);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    margin-top: var(--space-xl);
+    background: var(--card-bg);
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.3s, background 0.3s, box-shadow 0.2s;
+}
+
+.generator-status--visible {
+    display: flex;
+}
+
+.generator-status--loading {
+    background: var(--bg-color);
+    background-image: linear-gradient(90deg, transparent 0%, rgba(99, 102, 241, 0.06) 40%, rgba(99, 102, 241, 0.12) 50%, rgba(99, 102, 241, 0.06) 60%, transparent 100%);
+    background-size: 200% 100%;
+    animation: statusShimmer 1.8s ease-in-out infinite;
+}
+
+.generator-status--pending {
+    box-shadow: var(--shadow-md);
+}
+
+.generator-status--complete {
+    background: var(--success-bg);
+    border-color: var(--success-border);
+    box-shadow: var(--shadow-md);
+}
+
+.generator-status--error {
+    background: var(--danger-bg);
+    border-color: var(--danger-border);
+}
+
+@keyframes statusShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.generator-status-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+    flex-shrink: 0;
+}
+
+.generator-status-text {
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--text-main);
+    line-height: 1.4;
+}
+
+.generator-status--complete .generator-status-text {
+    color: var(--success-color);
+}
+
+.generator-status--error .generator-status-text {
+    color: var(--danger-color);
+}
+
+.generator-status-code {
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 800;
+    color: var(--primary-color);
+    letter-spacing: 0.1em;
+}
+
+.generator-status-actions {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.generator-status-actions button {
+    width: auto;
+    padding: var(--space-sm) var(--space-xl);
+    font-size: var(--text-sm);
+}
+
+.generator-status-actions .btn-secondary {
+    width: auto;
+    padding: var(--space-sm) var(--space-xl);
+    font-size: var(--text-sm);
+}
+
+.generator-status-reset {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    text-decoration: underline;
+    cursor: pointer;
+    background: none;
+    border: none;
+    box-shadow: none;
+    font-weight: 400;
+    padding: 0;
+    margin-top: var(--space-xs);
+}
+
+.generator-status-reset:hover {
+    color: var(--text-main);
+    transform: none;
+}
+
+@media (max-width: 640px) {
+    .generator-status {
+        padding: var(--space-xl) var(--space-2xl);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .generator-status--loading {
+        animation: none;
+        background-image: none;
+    }
+    .generator-status {
+        transition: none;
+    }
 }
 
 button {
@@ -1216,9 +1450,6 @@ nav button:hover {
     margin-bottom: var(--space-sm);
 }
 
-.main-wide {
-    max-width: 1000px;
-}
 
 .quizzes-quick-join {
     display: flex;
@@ -1247,8 +1478,9 @@ nav button:hover {
 
 .empty-state-btn {
     width: auto;
-    padding: var(--space-md) var(--space-3xl);
+    padding: var(--space-lg) var(--space-4xl);
     display: inline-flex;
+    font-size: var(--text-lg);
 }
 
 /* Timer Bar Styles */
@@ -1564,124 +1796,10 @@ nav button:hover {
     margin-bottom: var(--space-lg);
 }
 
-.generator-pending {
-    background: #ecfdf5;
-    padding: var(--space-3xl);
-    border-radius: var(--radius-lg);
-    border: 1px solid #10b981;
-    margin-top: var(--space-3xl);
-    text-align: center;
-}
-
-.generator-pending-heading {
-    color: #065f46;
-    margin-bottom: var(--space-sm);
-}
-
-.generator-pending-text {
-    font-size: var(--text-base);
-    color: #065f46;
-    margin-bottom: var(--space-2xl);
-}
-
-.generator-pending-actions {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-lg);
-}
-
-.generator-pending-btn {
-    width: auto;
-    padding: var(--space-md) var(--space-2xl);
-    background: #10b981;
-    color: white;
-    border-radius: var(--radius-sm);
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-}
-
-.generator-success {
-    background: #ecfdf5;
-    padding: var(--space-3xl);
-    border-radius: var(--radius-lg);
-    border: 1px solid #10b981;
-    margin-top: var(--space-3xl);
-    text-align: center;
-}
-
-.generator-success-heading {
-    color: #065f46;
-    margin-bottom: var(--space-sm);
-}
-
-.generator-success-text {
-    font-size: var(--text-base);
-    color: #065f46;
-    margin-bottom: var(--space-2xl);
-}
-
-.generator-code-block {
-    background: white;
-    padding: var(--space-2xl);
-    border-radius: var(--radius-md);
-    border: 2px dashed #10b981;
-    margin-bottom: var(--space-2xl);
-    display: inline-block;
-    min-width: 200px;
-}
-
-.generator-code-label {
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: var(--space-sm);
-}
-
-.generator-code-value {
-    font-size: var(--space-4xl);
-    font-weight: 800;
-    color: var(--success-color);
-    font-family: 'Courier New', Courier, monospace;
-    letter-spacing: 0.2rem;
-}
-
-.generator-success-actions {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-lg);
-}
-
-.generator-success-btn {
-    width: auto;
-    padding: var(--space-md) var(--space-2xl);
-    background: #10b981;
-    color: white;
-    border-radius: var(--radius-sm);
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.generator-success-link {
-    color: #047857;
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-decoration: underline;
-}
-
 .generator-error {
     color: var(--danger-color);
     text-align: center;
     padding: var(--space-lg);
-}
-
-.generator-loading {
-    margin-top: var(--space-3xl);
 }
 
 .quiz-card-pending {
@@ -1796,28 +1914,6 @@ nav button:hover {
 [data-theme="dark"] .btn-danger:hover {
     background: var(--danger-hover);
     box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.3);
-}
-
-[data-theme="dark"] .generator-pending,
-[data-theme="dark"] .generator-success {
-    background: rgba(5, 150, 105, 0.1);
-    border-color: rgba(16, 185, 129, 0.3);
-}
-
-[data-theme="dark"] .generator-pending-heading,
-[data-theme="dark"] .generator-pending-text,
-[data-theme="dark"] .generator-success-heading,
-[data-theme="dark"] .generator-success-text {
-    color: #34d399;
-}
-
-[data-theme="dark"] .generator-code-block {
-    background: var(--card-bg);
-    border-color: rgba(16, 185, 129, 0.3);
-}
-
-[data-theme="dark"] .generator-success-link {
-    color: #34d399;
 }
 
 [data-theme="dark"] .edit-q-block {
@@ -2003,15 +2099,15 @@ nav button:hover {
 }
 
 .quiz-card-difficulty-easy {
-    border-left: 4px solid #10b981;
+    border-top: 4px solid #10b981;
 }
 
 .quiz-card-difficulty-medium {
-    border-left: 4px solid #f59e0b;
+    border-top: 4px solid #f59e0b;
 }
 
 .quiz-card-difficulty-hard {
-    border-left: 4px solid #ef4444;
+    border-top: 4px solid #ef4444;
 }
 
 .quiz-card-timestamp {

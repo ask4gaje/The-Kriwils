@@ -166,22 +166,25 @@ setInterval(() => {
 // --- Background Job Logic ---
 
 /**
- * Checks if Gemini is responsive before starting a long job.
+ * Checks if DeepSeek is responsive before starting a long job.
  */
 async function checkAiAvailability(apiKey) {
-    const model = 'gemini-2.5-flash';
-    const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    const testUrl = 'https://api.deepseek.com/v1/chat/completions';
     try {
         const result = await makeRequest(testUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            }
         }, {
-            contents: [{ parts: [{ text: "hi" }] }],
-            generationConfig: { maxOutputTokens: 1 }
+            model: 'deepseek-chat',
+            messages: [{ role: 'user', content: 'hi' }],
+            max_tokens: 1
         });
-        
+
         if (result.status !== 200) {
-            console.error(`[Pre-check] Ping failed for ${model}. Status: ${result.status}`, result.data);
+            console.error(`[Pre-check] Ping failed. Status: ${result.status}`, result.data);
             return false;
         }
         return true;
@@ -192,13 +195,12 @@ async function checkAiAvailability(apiKey) {
 }
 
 async function processBackgroundQuiz(quizId, userId, payload) {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.DEEPSEEK_API_KEY;
     const { topic, difficulty, count, pdfContext, title } = payload;
 
     console.log(`[Background] Starting job for Quiz ID: ${quizId} (User: ${userId})`);
 
-    // Updated to match the specific 2.5/flash-latest models available to this API key
-    const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest'];
+    const models = ['deepseek-chat', 'deepseek-reasoner'];
     let success = false;
 
     for (const model of models) {
@@ -206,7 +208,6 @@ async function processBackgroundQuiz(quizId, userId, payload) {
         try {
             console.log(`[Background] Attempting with model: ${model}...`);
             
-            // 1. Prepare Prompt
             const sTopic = sanitize(topic);
             let prompt = `Kamu adalah pembuat kuis. Buat kuis berdasarkan topik yang diberikan.
 Return STRICTLY a JSON array of ${count} objects.
@@ -220,30 +221,48 @@ Jangan sertakan teks apapun di luar JSON array.`;
 
             if (pdfContext) {
                 const sPdf = sanitize(pdfContext).substring(0, 15000);
-                prompt = `Materi:\n${sPdf}\n\nBuat kuis ${count} soal berdasarkan materi di atas tentang "${sTopic}" (${difficulty}) dalam format JSON array Bahasa Indonesia.`;
+                prompt = `Kamu adalah pembuat kuis.
+Return STRICTLY a JSON array of ${count} objects.
+Semua konten HARUS dalam Bahasa Indonesia.
+Difficulty: ${difficulty}.
+
+Materi:\n${sPdf}
+
+Buat kuis berdasarkan materi di atas tentang "${sTopic}".
+
+Format: [{"question": "...", "options": ["...", "..."], "answer": index, "explanation": "..."}]
+Jangan sertakan teks apapun di luar JSON array.`;
             }
 
-            // 2. Call Gemini
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-            const geminiResult = await makeRequest(
+            const apiUrl = 'https://api.deepseek.com/v1/chat/completions';
+            const deepseekResult = await makeRequest(
                 apiUrl,
-                { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey } },
-                { contents: [{ parts: [{ text: prompt }] }] }
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    }
+                },
+                {
+                    model,
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: 0.7
+                }
             );
 
-            if (geminiResult.status !== 200 || !geminiResult.data.candidates) {
-                const errMsg = geminiResult.data?.error?.message || 'Unknown Gemini Error';
-                console.error(`[Background] ${model} Failed (${geminiResult.status}): ${errMsg}`);
+            if (deepseekResult.status !== 200 || !deepseekResult.data.choices) {
+                const errMsg = deepseekResult.data?.error?.message || 'Unknown DeepSeek Error';
+                console.error(`[Background] ${model} Failed (${deepseekResult.status}): ${errMsg}`);
                 continue; 
             }
 
             console.log(`[Background] ${model} success. Parsing JSON...`);
-            let text = geminiResult.data.candidates[0].content.parts[0].text;
+            let text = deepseekResult.data.choices[0].message.content;
             const start = text.indexOf('[');
             const end = text.lastIndexOf(']');
             const questions = JSON.parse(text.substring(start, end + 1));
 
-            // 3. Update DB to Completed
             console.log(`[Background] Updating Database...`);
             const updateResult = await supabaseAdmin('PATCH', `quizzes?id=eq.${quizId}`, {
                 questions_json: questions,
@@ -286,21 +305,14 @@ const server = http.createServer(async (req, res) => {
         }));
     }
 
-    // DEBUG: List Gemini Models
+    // List available AI models
     if (urlPath === '/api/list-models' && req.method === 'GET') {
         try {
             const jwt = getAuthHeader(req);
             if (!jwt) { res.writeHead(401); return res.end(JSON.stringify({ error: 'Missing Authorization header' })); }
             await verifyUser(jwt);
-            const apiKey = process.env.GEMINI_API_KEY;
-            const testUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
-            makeRequest(testUrl, { method: 'GET', headers: { 'x-goog-api-key': apiKey } }).then(result => {
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify(result.data));
-            }).catch(e => {
-                res.writeHead(500);
-                res.end(JSON.stringify({ error: e.message }));
-            });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ data: ['deepseek-chat', 'deepseek-reasoner'] }));
         } catch (err) {
             const status = err.message.includes('Unauthorized') ? 401 : 500;
             const msg = status === 401 ? err.message : 'An internal error occurred';
@@ -339,11 +351,11 @@ const server = http.createServer(async (req, res) => {
 
             // NEW: Pre-check AI availability before sending success toast
             console.log('[API] Checking AI Availability before accepting...');
-            const isAiUp = await checkAiAvailability(process.env.GEMINI_API_KEY);
+            const isAiUp = await checkAiAvailability(process.env.DEEPSEEK_API_KEY);
             if (!isAiUp) {
                 console.error('[API] AI Pre-check failed.');
                 res.writeHead(503);
-                return res.end(JSON.stringify({ error: 'Gemini AI is currently busy or unreachable. Please try again later.' }));
+                return res.end(JSON.stringify({ error: 'DeepSeek AI is currently busy or unreachable. Please try again later.' }));
             }
 
             // Check if user already has a pending quiz
@@ -599,7 +611,7 @@ server.listen(PORT, () => {
     
     // Startup Health Check
     console.log('--- Environment Check ---');
-    const required = ['GEMINI_API_KEY', 'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
+    const required = ['DEEPSEEK_API_KEY', 'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
     let allOk = true;
     required.forEach(key => {
         if (!process.env[key]) {
