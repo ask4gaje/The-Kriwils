@@ -1,6 +1,77 @@
 let supabaseClient;
 let initPromise = null;
 
+function renderAuthSplash(subtitle) {
+    var el = document.querySelector('.auth-splash');
+    if (!el) return;
+    el.innerHTML = '' +
+        '<div class="splash-blob" aria-hidden="true"></div>' +
+        '<div class="splash-blob" aria-hidden="true"></div>' +
+        '<div class="splash-blob" aria-hidden="true"></div>' +
+        '<svg class="splash-constellation" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>' +
+        '<svg class="splash-constellation" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>' +
+        '<svg class="splash-constellation" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>' +
+        '<svg class="splash-constellation" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>' +
+        '<svg class="splash-constellation" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>' +
+        '<div class="splash-particle" aria-hidden="true"></div>' +
+        '<div class="splash-particle" aria-hidden="true"></div>' +
+        '<div class="splash-particle" aria-hidden="true"></div>' +
+        '<div class="splash-particle" aria-hidden="true"></div>' +
+        '<div class="splash-particle" aria-hidden="true"></div>' +
+        '<div class="splash-particle" aria-hidden="true"></div>' +
+        '<div class="splash-particle" aria-hidden="true"></div>' +
+        '<div class="splash-particle" aria-hidden="true"></div>' +
+        '<div class="splash-particle" aria-hidden="true"></div>' +
+        '<div class="splash-particle" aria-hidden="true"></div>' +
+        '<div class="auth-splash-content">' +
+            '<svg class="brand-logo-splash" viewBox="0 0 32 36" fill="none" aria-hidden="true">' +
+                '<defs>' +
+                    '<linearGradient id="logoGradA" x1="0" y1="0" x2="1" y2="1">' +
+                        '<stop offset="0%" stop-color="#818cf8"/>' +
+                        '<stop offset="100%" stop-color="#a5b4fc"/>' +
+                    '</linearGradient>' +
+                '</defs>' +
+                '<path d="M8 10C8 6 11 2 16 2C21 2 24 6 24 10C24 14 22 17 18 19L17 20V24" stroke="url(#logoGradA)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+                '<circle cx="17" cy="31" r="2.5" fill="url(#logoGradA)"/>' +
+            '</svg>' +
+            '<div class="auth-splash-brand">The Kriwils</div>' +
+            '<div class="auth-splash-tagline">AI-Powered Quiz Platform</div>' +
+            (subtitle ? '<div class="auth-splash-subtitle">' + escapeHtml(subtitle) + '</div>' : '') +
+        '</div>' +
+        '<div class="auth-splash-theme">' +
+            '<button onclick="toggleTheme()" class="btn-theme" aria-label="Toggle theme"></button>' +
+        '</div>';
+}
+
+var _errorMap = {
+    'Invalid login credentials': 'The email or password you entered is incorrect.',
+    'Email not confirmed': 'Please verify your email before logging in. Check your inbox for the confirmation link.',
+    'User already registered': 'An account with this email already exists. Try logging in instead.',
+    'Password should be at least 6 characters': 'Password must be at least 6 characters long.',
+    'New password should be different from the old password': 'Your new password must be different from your current password.',
+    'Email rate limit exceeded': 'Too many attempts. Please wait a moment before trying again.',
+    'For security purposes, you can only request this after': 'Please wait before requesting another reset link.',
+    'Token has expired or is invalid': 'This link has expired or is no longer valid. Please request a new one.',
+    'Invalid request': 'This link is invalid or has expired. Please request a new one.',
+    'User not found': 'No account found with this email address.',
+    'Could not connect to database': 'Unable to reach our servers. Please check your connection and try again.'
+};
+
+var _errorLowerKeys = Object.keys(_errorMap).reduce(function(acc, key) {
+    acc[key.toLowerCase()] = _errorMap[key];
+    return acc;
+}, {});
+
+function humanizeError(err) {
+    if (!err) return 'An unexpected error occurred. Please try again.';
+    var msg = (err.message || String(err)).toLowerCase();
+    for (var i = 0; i < Object.keys(_errorLowerKeys).length; i++) {
+        var key = Object.keys(_errorLowerKeys)[i];
+        if (msg.indexOf(key) !== -1) return _errorLowerKeys[key];
+    }
+    return err.message || 'An unexpected error occurred. Please try again.';
+}
+
 /**
  * Dynamically fetches Supabase configuration from the server.
  * This prevents keys from being hardcoded in the frontend.
@@ -92,6 +163,24 @@ async function logoutUser() {
     } else {
         window.location.href = '/login';
     }
+}
+
+async function changePassword(email, currentPassword, newPassword) {
+    const client = await getSupabase();
+    if (!client) throw new Error("Could not connect to database. Please refresh.");
+
+    const { error: signInError } = await client.auth.signInWithPassword({
+        email,
+        password: currentPassword
+    });
+    if (signInError) throw signInError;
+
+    const { error: updateError } = await client.auth.updateUser({
+        password: newPassword
+    });
+    if (updateError) throw updateError;
+
+    return { success: true };
 }
 
 async function resetPassword(email) {
@@ -332,20 +421,4 @@ function resetButton(btn, text) {
     btn.disabled = false;
     btn.classList.remove('btn-loading');
     btn.textContent = text || btn.dataset.originalText || '';
-}
-
-function togglePasswordVisibility(inputId, btn) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-    if (input.type === 'password') {
-        input.type = 'text';
-        btn.textContent = 'Hide';
-        btn.setAttribute('aria-label', 'Hide password');
-        btn.setAttribute('aria-pressed', 'true');
-    } else {
-        input.type = 'password';
-        btn.textContent = 'Show';
-        btn.setAttribute('aria-label', 'Show password');
-        btn.setAttribute('aria-pressed', 'false');
-    }
 }

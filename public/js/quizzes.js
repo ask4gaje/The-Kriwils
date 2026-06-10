@@ -653,24 +653,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMyQuizzes();
     loadActivityFeed();
 
-    const quickInput = document.getElementById('quickQuizCode');
-    const quickBtn = document.getElementById('quickJoinBtn');
-
-    if (quickInput && quickBtn) {
-        const join = () => {
-            const code = quickInput.value.trim().toUpperCase();
-            if (code.length === 6) {
-                window.location.href = `/play/${code}`;
-            } else {
-                showToast("Please enter a valid 6-character code!", 'error');
-            }
-        };
-        quickBtn.onclick = join;
-        quickInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') join();
-        });
-    }
-
     const searchInput = document.getElementById('quizSearch');
     const sortSelect = document.getElementById('quizSort');
 

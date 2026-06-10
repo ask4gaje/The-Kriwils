@@ -131,6 +131,44 @@ async function supabaseAdmin(method, path, body = null) {
     return await makeRequest(`${supabaseUrl}/rest/v1/${path}`, options, body);
 }
 
+async function supabaseStorageList(bucket, prefix) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceKey) throw new Error('Supabase Admin keys missing');
+
+    return await makeRequest(`${supabaseUrl}/storage/v1/object/list/${bucket}`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${serviceKey}`,
+            'apikey': serviceKey,
+            'Content-Type': 'application/json'
+        }
+    }, { prefix, limit: 100 });
+}
+
+async function supabaseStorageDelete(bucket, paths) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceKey) throw new Error('Supabase Admin keys missing');
+
+    let lastResult = { status: 200, data: null };
+    for (const p of paths) {
+        const result = await makeRequest(`${supabaseUrl}/storage/v1/object/${bucket}/${p}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${serviceKey}`,
+                'apikey': serviceKey
+            }
+        });
+        lastResult = result;
+        if (result.status >= 400) {
+            console.error('[Storage Delete Error]', bucket, p, result.status, JSON.stringify(result.data));
+            return result;
+        }
+    }
+    return lastResult;
+}
+
 function generateShortCode() {
     return require('crypto').randomBytes(3).toString('hex').toUpperCase();
 }
@@ -464,6 +502,34 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
+    // API: Delete Avatar - removes avatar file from storage
+    if (urlPath === '/api/delete-avatar' && req.method === 'POST') {
+        try {
+            const jwt = getAuthHeader(req);
+            if (!jwt) { res.writeHead(401); return res.end(JSON.stringify({ error: 'Missing Authorization header' })); }
+            const user = await verifyUser(jwt);
+            const body = await getBody(req);
+            const avatarPath = sanitize(body.path);
+            if (!avatarPath) { res.writeHead(400); return res.end(JSON.stringify({ error: 'Missing avatar path' })); }
+            if (!avatarPath.startsWith(`${user.id}/`)) { res.writeHead(403); return res.end(JSON.stringify({ error: 'Forbidden' })); }
+
+            const deleteResult = await supabaseStorageDelete('avatars', [avatarPath]);
+            if (deleteResult.status >= 400) {
+                console.error('[Storage Delete Error]', deleteResult.status, JSON.stringify(deleteResult.data));
+                throw new Error(deleteResult.data?.message || deleteResult.data?.error || 'Failed to delete avatar file');
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ message: 'Avatar deleted' }));
+        } catch (err) {
+            const status = err.message.includes('Unauthorized') ? 401 : 500;
+            const msg = status === 401 ? err.message : 'An internal error occurred';
+            if (status === 500) console.error('[API Error]', err);
+            res.writeHead(status);
+            return res.end(JSON.stringify({ error: msg }));
+        }
+    }
+
     // API: Delete Account - removes user data + auth record
     if (urlPath === '/api/delete-account' && req.method === 'DELETE') {
         try {
@@ -477,6 +543,13 @@ const server = http.createServer(async (req, res) => {
                 const inClause = quizIds.map(id => `"${id}"`).join(',');
                 await supabaseAdmin('DELETE', `quiz_results?quiz_id=in.(${inClause})`);
                 await supabaseAdmin('DELETE', `quizzes?creator_id=eq.${user.id}`);
+            }
+
+            // Clean up avatar files from storage
+            const listResult = await supabaseStorageList('avatars', `${user.id}/`);
+            if (listResult.data && listResult.data.length > 0) {
+                const paths = listResult.data.map(f => `${user.id}/${f.name}`);
+                await supabaseStorageDelete('avatars', paths);
             }
 
             const supabaseUrl = process.env.SUPABASE_URL;

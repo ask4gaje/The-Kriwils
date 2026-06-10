@@ -13,59 +13,7 @@
 </head>
 <body>
     <div class="auth-split-layout">
-        <div class="auth-splash">
-            <div class="splash-blob" aria-hidden="true"></div>
-            <div class="splash-blob" aria-hidden="true"></div>
-            <div class="splash-blob" aria-hidden="true"></div>
-            <svg class="splash-network" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-                <line x1="150" y1="140" x2="450" y2="245" />
-                <line x1="450" y1="245" x2="700" y2="175" />
-                <line x1="450" y1="245" x2="300" y2="420" />
-                <line x1="700" y1="175" x2="850" y2="350" />
-                <line x1="850" y1="350" x2="800" y2="455" />
-                <line x1="800" y1="455" x2="550" y2="525" />
-                <line x1="550" y1="525" x2="300" y2="420" />
-                <line x1="150" y1="140" x2="300" y2="420" />
-            </svg>
-            <div class="splash-node" aria-hidden="true"></div>
-            <div class="splash-node" aria-hidden="true"></div>
-            <div class="splash-node" aria-hidden="true"></div>
-            <div class="splash-node" aria-hidden="true"></div>
-            <div class="splash-node" aria-hidden="true"></div>
-            <div class="splash-node" aria-hidden="true"></div>
-            <div class="splash-node" aria-hidden="true"></div>
-            <div class="splash-signal" aria-hidden="true"></div>
-            <div class="splash-signal" aria-hidden="true"></div>
-            <div class="splash-particle" aria-hidden="true"></div>
-            <div class="splash-particle" aria-hidden="true"></div>
-            <div class="splash-particle" aria-hidden="true"></div>
-            <div class="splash-particle" aria-hidden="true"></div>
-            <div class="splash-particle" aria-hidden="true"></div>
-            <div class="splash-particle" aria-hidden="true"></div>
-            <div class="splash-particle" aria-hidden="true"></div>
-            <div class="splash-particle" aria-hidden="true"></div>
-            <div class="splash-particle" aria-hidden="true"></div>
-            <div class="splash-particle" aria-hidden="true"></div>
-            <div class="auth-splash-content">
-                <svg class="brand-logo-splash" viewBox="0 0 32 36" fill="none" aria-hidden="true">
-                    <defs>
-                        <linearGradient id="logoGradA" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0%" stop-color="#818cf8"/>
-                            <stop offset="100%" stop-color="#a5b4fc"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M8 10C8 6 11 2 16 2C21 2 24 6 24 10C24 14 22 17 18 19L17 20V24"
-                          stroke="url(#logoGradA)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                    <circle cx="17" cy="31" r="2.5" fill="url(#logoGradA)"/>
-                </svg>
-                <div class="auth-splash-brand">The Kriwils</div>
-                <div class="auth-splash-tagline">AI-Powered Quiz Platform</div>
-                <div class="auth-splash-subtitle">Create your account to get started</div>
-            </div>
-            <div class="auth-splash-theme">
-                <button onclick="toggleTheme()" class="btn-theme" aria-label="Toggle theme"></button>
-            </div>
-        </div>
+        <div class="auth-splash"></div>
         <div class="auth-form-side">
             <div class="login-card">
                 <h1>Create Account</h1>
@@ -84,20 +32,19 @@
                 </div>
                 <div class="form-group">
                     <label for="regPassword">Password</label>
-                    <div class="password-wrapper">
-                        <input type="password" id="regPassword" placeholder="Create a password" autocomplete="new-password" required>
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('regPassword', this)" aria-label="Show password" aria-pressed="false">Show</button>
-                    </div>
+                    <input type="password" id="regPassword" placeholder="Create a password" autocomplete="new-password" required>
                 </div>
                 <button type="submit" id="doRegister">Sign Up</button>
                 </form>
-                <p class="login-footer-link">Already have an account? <a href="/login">Sign In</a></p>
+                <p class="login-footer-link">Already have an account? <a href="/login">Login</a></p>
             </div>
         </div>
     </div>
 
     <script src="js/auth.js?v=2.0"></script>
     <script>
+        renderAuthSplash('Create your account to get started');
+
         document.getElementById('registerForm').addEventListener('submit', function(e) {
             e.preventDefault();
             document.getElementById('doRegister').click();
@@ -127,7 +74,7 @@
             try {
                 const { data, error } = await registerUser(email, pwd, displayName);
                 if (error) {
-                    errorDiv.innerText = error.message;
+                    errorDiv.innerText = humanizeError(error);
                     errorDiv.style.display = "block";
                 } else if (!data.session && data.user) {
                     const isNew = Date.now() - new Date(data.user.created_at).getTime() < 10000;
@@ -148,7 +95,7 @@
                                 resendMsg.innerText = "Confirmation email resent! Check your inbox.";
                                 resendMsg.style.display = "block";
                             } catch (resendErr) {
-                                resendMsg.innerText = resendErr.message;
+                                resendMsg.innerText = humanizeError(resendErr);
                                 resendMsg.style.display = "block";
                             }
                         };
@@ -162,12 +109,13 @@
                         }, 2000);
                     }
             } catch (err) {
-                errorDiv.innerText = err.message;
+                errorDiv.innerText = humanizeError(err);
                 errorDiv.style.display = "block";
             } finally {
                 resetButton(regBtn, 'Sign Up');
             }
         };
     </script>
+<script src="js/splash-constellations.js"></script>
 </body>
 </html>
