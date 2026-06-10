@@ -3,18 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 36'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%234f46e5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M8 10C8 6 11 2 16 2C21 2 24 6 24 10C24 14 22 17 18 19L17 20V24' stroke='url(%23g)' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='17' cy='31' r='2.5' fill='url(%23g)'/%3E%3C/svg%3E">
     <title>The Kriwils - Home</title>
-    <link rel="stylesheet" href="css/style.css?v=1.6">
+    <link rel="stylesheet" href="css/style.css?v=2.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <style>body { visibility: hidden; }</style>
 </head>
-<body>
+<body class="body-hidden">
     <nav aria-label="Main navigation">
-        <a href="/create" class="nav-brand">The Kriwils</a>
+        <a href="/create" class="nav-brand brand-logo">
+            <svg class="brand-logo-nav" viewBox="0 0 32 36" fill="none" aria-hidden="true">
+                <defs>
+                    <linearGradient id="logoGradA" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#6366f1"/>
+                        <stop offset="100%" stop-color="#4f46e5"/>
+                    </linearGradient>
+                </defs>
+                <path d="M8 10C8 6 11 2 16 2C21 2 24 6 24 10C24 14 22 17 18 19L17 20V24"
+                      stroke="url(#logoGradA)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <circle cx="17" cy="31" r="2.5" fill="url(#logoGradA)"/>
+            </svg>
+            The Kriwils
+        </a>
         <ul class="nav-links">
             <!-- Dynamically populated by auth.js -->
         </ul>
@@ -27,7 +40,7 @@
             <p>Enter any topic and choose a difficulty to get started.</p>
 
             
-            <div class="generator-form">
+            <form class="generator-form" autocomplete="off">
                 <div class="form-group">
                     <label for="quizTitle">Quiz Title</label>
                     <input type="text" id="quizTitle" placeholder="e.g., My Awesome Retro Quiz" autocomplete="off">
@@ -93,14 +106,14 @@
                     </label>
                 </div>
                 
-                <button id="generateBtn">Generate Quiz</button>
-            </div>
+                <button id="generateBtn" type="submit">Generate Quiz</button>
+            </form>
 
-            <div id="quizResults" class="quiz-results">
+            <div id="quizResults" class="quiz-results" aria-live="polite">
             </div>
         </section>
     </main>
-    <script src="js/auth.js?v=1.6"></script>
-    <script src="js/script.js?v=1.6"></script>
+    <script src="js/auth.js?v=2.0"></script>
+    <script src="js/script.js?v=2.0"></script>
 </body>
 </html>

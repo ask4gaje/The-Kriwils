@@ -104,6 +104,8 @@ Types: feat, fix, sec, style, chore, docs
 - NO text-only loading (always spinner + text)
 - NO absolute paths (use relative in all HTML/CSS/JS references)
 - NO emojis in UI text, markup, or code strings
+- NO em dashes (—) in text. Use period or other punctuation.
+- NO em-dash in anything
 
 ### Breakpoints
 - `@media (max-width: 768px)` — tablet adjustments

@@ -274,7 +274,7 @@ Jangan sertakan teks apapun di luar JSON array.`;
             }
 
             success = true;
-            console.log(`✨ [Background] Quiz ${quizId} COMPLETED SUCCESSFULLY.`);
+            console.log(`[Background] Quiz ${quizId} COMPLETED SUCCESSFULLY.`);
 
         } catch (err) {
             console.error(`[Background] Error with ${model}:`, err.message);
@@ -282,7 +282,7 @@ Jangan sertakan teks apapun di luar JSON array.`;
     }
 
     if (!success) {
-        console.error(`❌ [Background] ALL MODELS FAILED for Quiz ${quizId}. Cleaning up...`);
+        console.error(`[Background] ALL MODELS FAILED for Quiz ${quizId}. Cleaning up...`);
         await supabaseAdmin('DELETE', `quizzes?id=eq.${quizId}`);
     }
 }
@@ -464,7 +464,7 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    // API: Delete Account — removes user data + auth record
+    // API: Delete Account - removes user data + auth record
     if (urlPath === '/api/delete-account' && req.method === 'DELETE') {
         try {
             const jwt = getAuthHeader(req);
@@ -500,7 +500,7 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    // API: Dashboard — List user's quizzes
+    // API: Dashboard - List user's quizzes
     if (urlPath === '/api/my-quizzes' && req.method === 'GET') {
         try {
             const jwt = getAuthHeader(req);
@@ -510,6 +510,36 @@ const server = http.createServer(async (req, res) => {
             if (result.status >= 400) throw new Error(result.data?.message || 'DB Error');
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ quizzes: result.data || [] }));
+        } catch (err) {
+            const status = err.message.includes('Unauthorized') ? 401 : 500;
+            const msg = status === 401 ? err.message : 'An internal error occurred';
+            if (status === 500) console.error('[API Error]', err);
+            res.writeHead(status);
+            return res.end(JSON.stringify({ error: msg }));
+        }
+    }
+
+    // API: User Stats
+    if (urlPath === '/api/user-stats' && req.method === 'GET') {
+        try {
+            const jwt = getAuthHeader(req);
+            if (!jwt) { res.writeHead(401); return res.end(JSON.stringify({ error: 'Missing Authorization header' })); }
+            const user = await verifyUser(jwt);
+
+            const quizzesResult = await supabaseAdmin('GET', `quizzes?creator_id=eq.${user.id}&select=id`);
+            const quizzes = quizzesResult.data || [];
+            const quizzes_count = quizzes.length;
+
+            let total_plays = 0;
+            if (quizzes.length > 0) {
+                const quizIds = quizzes.map(q => q.id);
+                const inClause = quizIds.map(id => `"${id}"`).join(',');
+                const resultsResult = await supabaseAdmin('GET', `quiz_results?quiz_id=in.(${inClause})&select=id`);
+                total_plays = (resultsResult.data || []).length;
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ quizzes_count, total_plays }));
         } catch (err) {
             const status = err.message.includes('Unauthorized') ? 401 : 500;
             const msg = status === 401 ? err.message : 'An internal error occurred';
@@ -607,7 +637,7 @@ const server = http.createServer(async (req, res) => {
 });
 server.timeout = 30000;
 server.listen(PORT, () => {
-    console.log(`\n🚀 Server running at http://localhost:${PORT}/`);
+    console.log(`\nServer running at http://localhost:${PORT}/`);
     
     // Startup Health Check
     console.log('--- Environment Check ---');
@@ -615,13 +645,13 @@ server.listen(PORT, () => {
     let allOk = true;
     required.forEach(key => {
         if (!process.env[key]) {
-            console.error(`❌ MISSING: ${key}`);
+            console.error(`MISSING: ${key}`);
             allOk = false;
         } else {
-            console.log(`✅ LOADED: ${key}`);
+            console.log(`LOADED: ${key}`);
         }
     });
-    if (allOk) console.log('✨ All systems ready!');
-    else console.warn('⚠️ Warning: Some features will not work without the keys above.');
+    if (allOk) console.log('All systems ready!');
+    else console.warn('Warning: Some features will not work without the keys above.');
     console.log('-------------------------\n');
 });

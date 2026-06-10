@@ -151,14 +151,21 @@ async function renderNavigation() {
     const fullPath = window.location.pathname;
     const rawPage = fullPath.replace(/\/$/, '').split('/').pop() || 'join';
     const currentPage = rawPage.replace('.html', '').split('?')[0].split('#')[0];
-    const themeIcon = document.documentElement.dataset.theme === 'dark' ? '☀️' : '🌙';
+    const SUN = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    const MOON = '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const themeIcon = document.documentElement.dataset.theme === 'dark' ? MOON : SUN;
 
     if (session) {
         const displayName = session.user.user_metadata?.display_name || session.user.email || 'Account';
+        const avatarUrl = session.user.user_metadata?.avatar_url;
         const nameParts = displayName.trim().split(/\s+/);
         const initials = nameParts.length > 1
             ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
             : displayName.slice(0, 2).toUpperCase();
+
+        const avatarContent = avatarUrl
+            ? `<img src="${escapeHtml(avatarUrl)}" alt="" class="avatar-img">`
+            : escapeHtml(initials);
 
         navLinks.innerHTML = `
             <li><a href="/create" class="${currentPage === 'create' ? 'active' : ''}">Create</a></li>
@@ -167,7 +174,7 @@ async function renderNavigation() {
             <li><a href="/about" class="${currentPage === 'about' ? 'active' : ''}">About</a></li>
             <li class="account-dropdown">
                 <button onclick="toggleAccountDropdown(event)" class="btn-account${currentPage === 'account' ? ' active' : ''}">
-                    <span class="avatar">${escapeHtml(initials)}</span>
+                    <span class="avatar">${avatarContent}</span>
                     <span class="account-name">${escapeHtml(displayName)}</span>
                     <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
@@ -205,8 +212,10 @@ function toggleTheme() {
     const next = current === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
     localStorage.setItem('theme', next);
+    const SUN = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    const MOON = '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     const btn = document.querySelector('.btn-theme');
-    if (btn) btn.textContent = next === 'dark' ? '☀️' : '🌙';
+    if (btn) btn.innerHTML = next === 'dark' ? MOON : SUN;
 }
 
 // Global protection and nav rendering
@@ -220,6 +229,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const theme = savedTheme || (prefersDark ? 'dark' : 'light');
     document.documentElement.dataset.theme = theme;
+    const SUN = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    const MOON = '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const themeBtn = document.querySelector('.btn-theme');
+    if (themeBtn) themeBtn.innerHTML = theme === 'dark' ? MOON : SUN;
 
     await initSupabase();
 
@@ -301,14 +314,38 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+function setButtonLoading(btn, text) {
+    if (!btn) return;
+    btn.disabled = true;
+    btn.dataset.originalText = btn.textContent;
+    btn.classList.add('btn-loading');
+    const spinner = document.createElement('span');
+    spinner.className = 'btn-spinner';
+    spinner.setAttribute('aria-hidden', 'true');
+    btn.textContent = '';
+    btn.appendChild(spinner);
+    btn.appendChild(document.createTextNode(text));
+}
+
+function resetButton(btn, text) {
+    if (!btn) return;
+    btn.disabled = false;
+    btn.classList.remove('btn-loading');
+    btn.textContent = text || btn.dataset.originalText || '';
+}
+
 function togglePasswordVisibility(inputId, btn) {
     const input = document.getElementById(inputId);
     if (!input) return;
     if (input.type === 'password') {
         input.type = 'text';
         btn.textContent = 'Hide';
+        btn.setAttribute('aria-label', 'Hide password');
+        btn.setAttribute('aria-pressed', 'true');
     } else {
         input.type = 'password';
         btn.textContent = 'Show';
+        btn.setAttribute('aria-label', 'Show password');
+        btn.setAttribute('aria-pressed', 'false');
     }
 }

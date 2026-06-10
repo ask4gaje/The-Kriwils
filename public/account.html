@@ -3,48 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 36'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%234f46e5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M8 10C8 6 11 2 16 2C21 2 24 6 24 10C24 14 22 17 18 19L17 20V24' stroke='url(%23g)' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='17' cy='31' r='2.5' fill='url(%23g)'/%3E%3C/svg%3E">
     <title>Account Settings - The Kriwils</title>
-    <link rel="stylesheet" href="css/style.css?v=1.6">
+    <link rel="stylesheet" href="css/style.css?v=2.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
-    <style>body { visibility: hidden; }</style>
 </head>
-<body>
+<body class="body-hidden">
     <nav aria-label="Main navigation">
-        <a href="/create" class="nav-brand">The Kriwils</a>
+        <a href="/create" class="nav-brand brand-logo">
+            <svg class="brand-logo-nav" viewBox="0 0 32 36" fill="none" aria-hidden="true">
+                <defs>
+                    <linearGradient id="logoGradA" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#6366f1"/>
+                        <stop offset="100%" stop-color="#4f46e5"/>
+                    </linearGradient>
+                </defs>
+                <path d="M8 10C8 6 11 2 16 2C21 2 24 6 24 10C24 14 22 17 18 19L17 20V24"
+                      stroke="url(#logoGradA)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <circle cx="17" cy="31" r="2.5" fill="url(#logoGradA)"/>
+            </svg>
+            The Kriwils
+        </a>
         <ul class="nav-links">
             <!-- Dynamically populated by auth.js -->
         </ul>
     </nav>
-    <div class="login-container">
-        <div class="login-card">
-            <h2>Account Settings</h2>
-            <p>Manage your account</p>
-            <div id="errorMsg" class="message-error"></div>
-            <div id="successMsg" class="message-success"></div>
 
-            <h3 class="account-section-heading">Change Password</h3>
-            <p class="account-section-text">A reset link will be sent to your registered email address.</p>
-            <div id="resetEmailDisplay" class="account-email-display"></div>
-            <button id="doSendReset">Send Password Reset Email</button>
+    <main class="main-left">
+        <h1>Account Settings</h1>
+        <div id="errorMsg" class="message-error" role="alert"></div>
+        <div id="successMsg" class="message-success" role="alert"></div>
 
-            <hr class="account-divider">
-
-            <h3 class="account-section-heading-danger">Delete Account</h3>
-            <p class="account-section-text">This will permanently delete your account and all your quizzes. This action cannot be undone.</p>
-            <form id="deleteForm">
-            <div class="form-group">
-                <label for="deleteConfirm">Type DELETE to confirm</label>
-                <input type="text" id="deleteConfirm" placeholder="DELETE" autocomplete="off">
+        <div class="account-profile">
+            <div class="account-avatar" id="accountAvatar" title="Click to change profile picture">
+                <span id="profileInitials"></span>
+                <img id="profileImg" src="" alt="Profile picture" class="hidden">
+                <div class="avatar-overlay">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </div>
             </div>
-            <button type="submit" id="doDelete" class="btn-danger">Delete Account</button>
-            </form>
+            <input type="file" id="avatarFileInput" accept="image/*" class="hidden">
+            <div class="account-profile-info">
+                <div class="profile-name-row">
+                    <h2 id="profileName"></h2>
+                    <button id="editNameBtn" class="edit-name-btn" aria-label="Edit display name">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="M15 5l4 4"/></svg>
+                    </button>
+                </div>
+                <p id="profileEmail"></p>
+                <button id="removeAvatar" class="account-remove-avatar hidden">Remove photo</button>
+            </div>
         </div>
-    </div>
 
-    <script src="js/auth.js?v=1.6"></script>
+        <hr class="account-divider">
+
+        <h3 class="account-section-heading">Your Stats</h3>
+        <div class="stats-summary" id="userStats">
+            <div class="stat-tile">
+                <span class="stat-value" id="quizzesCount">-</span>
+                <span class="stat-label">Quizzes</span>
+            </div>
+            <div class="stat-tile">
+                <span class="stat-value" id="totalPlays">-</span>
+                <span class="stat-label">Plays</span>
+            </div>
+        </div>
+
+        <hr class="account-divider">
+
+        <h3 class="account-section-heading">Change Password</h3>
+        <p class="account-section-text">A reset link will be sent to your registered email address.</p>
+        <div class="account-email-display" id="resetEmailDisplay"></div>
+        <button id="doSendReset" class="account-btn">Send Password Reset Email</button>
+
+        <hr class="account-divider">
+
+        <h3 class="account-section-heading-danger">Delete Account</h3>
+        <p class="account-section-text">This will permanently delete your account and all your quizzes. This action cannot be undone.</p>
+        <form id="deleteForm" autocomplete="off">
+        <div class="form-group">
+            <label for="deleteConfirm">Type DELETE to confirm</label>
+            <input type="text" id="deleteConfirm" placeholder="DELETE" autocomplete="off">
+        </div>
+        <button type="submit" id="doDelete" class="btn-danger">Delete Account</button>
+        </form>
+    </main>
+
+    <script src="js/auth.js?v=2.0"></script>
     <script>
         (async function() {
             document.getElementById('deleteForm').addEventListener('submit', function(e) {
@@ -58,10 +106,191 @@
 
             const session = await checkSession();
             const email = session?.user?.email;
+            const userId = session?.user?.id;
+            const avatarUrl = session?.user?.user_metadata?.avatar_url;
+            let displayName = session?.user?.user_metadata?.display_name || email || 'User';
+            const nameParts = displayName.trim().split(/\s+/);
+            const initials = nameParts.length > 1
+                ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+                : displayName.slice(0, 2).toUpperCase();
+
+            const avatarEl = document.getElementById('accountAvatar');
+            const initialsEl = document.getElementById('profileInitials');
+            const profileImg = document.getElementById('profileImg');
+            const fileInput = document.getElementById('avatarFileInput');
+            const removeBtn = document.getElementById('removeAvatar');
+
+            function showAvatarImage(url) {
+                profileImg.src = url;
+                profileImg.style.display = 'block';
+                initialsEl.style.display = 'none';
+                removeBtn.style.display = 'inline-block';
+            }
+
+            function showAvatarInitials() {
+                initialsEl.textContent = initials;
+                profileImg.style.display = 'none';
+                initialsEl.style.display = '';
+                removeBtn.style.display = 'none';
+            }
+
+            if (avatarUrl) {
+                showAvatarImage(avatarUrl);
+            } else {
+                showAvatarInitials();
+            }
+
+            document.getElementById('profileName').textContent = displayName;
+            document.getElementById('profileEmail').textContent = email || '';
+
+            const editNameBtn = document.getElementById('editNameBtn');
+            const profileNameEl = document.getElementById('profileName');
+
+            editNameBtn.addEventListener('click', () => {
+                const current = profileNameEl.textContent;
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = current;
+                input.className = 'edit-name-input';
+                input.setAttribute('aria-label', 'Display name');
+
+                profileNameEl.replaceWith(input);
+                input.focus();
+                input.select();
+
+                const save = async () => {
+                    const newName = input.value.trim();
+                    if (!newName || newName === current) {
+                        input.replaceWith(profileNameEl);
+                        return;
+                    }
+
+                    errorDiv.style.display = 'none';
+                    successDiv.style.display = 'none';
+
+                    try {
+                        const client = await getSupabase();
+                        const { error: updateErr } = await client.auth.updateUser({
+                            data: { display_name: newName }
+                        });
+                        if (updateErr) throw updateErr;
+
+                        profileNameEl.textContent = newName;
+                        input.replaceWith(profileNameEl);
+                        displayName = newName;
+                        successDiv.innerText = 'Display name updated.';
+                        successDiv.style.display = 'block';
+                        renderNavigation();
+                    } catch (err) {
+                        input.replaceWith(profileNameEl);
+                        errorDiv.innerText = err.message;
+                        errorDiv.style.display = 'block';
+                    }
+                };
+
+                input.addEventListener('blur', save);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+                    if (e.key === 'Escape') { input.value = current; input.blur(); }
+                });
+            });
+
+            avatarEl.addEventListener('click', () => fileInput.click());
+
+            removeBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                setButtonLoading(removeBtn, 'Removing...');
+
+                const client = await getSupabase();
+                const { error: updateErr } = await client.auth.updateUser({
+                    data: { avatar_url: null }
+                });
+
+                if (updateErr) {
+                    resetButton(removeBtn, 'Remove photo');
+                    return;
+                }
+
+                showAvatarInitials();
+                resetButton(removeBtn, 'Remove photo');
+            });
+
+            fileInput.addEventListener('change', async () => {
+                const file = fileInput.files[0];
+                if (!file) return;
+
+                if (file.size > 2 * 1024 * 1024) {
+                    errorDiv.innerText = 'Image must be under 2MB.';
+                    errorDiv.style.display = 'block';
+                    fileInput.value = '';
+                    return;
+                }
+
+                if (!file.type.startsWith('image/')) {
+                    errorDiv.innerText = 'Please select an image file.';
+                    errorDiv.style.display = 'block';
+                    fileInput.value = '';
+                    return;
+                }
+
+                errorDiv.style.display = 'none';
+                const client = await getSupabase();
+                const ext = file.name.split('.').pop();
+                const path = `${userId}/${Date.now()}.${ext}`;
+
+                const { error: uploadErr } = await client.storage
+                    .from('avatars')
+                    .upload(path, file, { upsert: false, contentType: file.type });
+
+                if (uploadErr) {
+                    errorDiv.innerText = 'Failed to upload image. Please try again.';
+                    errorDiv.style.display = 'block';
+                    fileInput.value = '';
+                    return;
+                }
+
+                const { data: publicUrlData } = client.storage.from('avatars').getPublicUrl(path);
+                const publicUrl = publicUrlData?.publicUrl;
+
+                if (!publicUrl) {
+                    errorDiv.innerText = 'Failed to get image URL.';
+                    errorDiv.style.display = 'block';
+                    fileInput.value = '';
+                    return;
+                }
+
+                const { error: updateErr } = await client.auth.updateUser({
+                    data: { avatar_url: publicUrl }
+                });
+
+                if (updateErr) {
+                    errorDiv.innerText = 'Failed to save profile picture.';
+                    errorDiv.style.display = 'block';
+                    fileInput.value = '';
+                    return;
+                }
+
+                showAvatarImage(publicUrl);
+                fileInput.value = '';
+            });
+
             if (email) {
                 emailDisplay.textContent = email;
             } else {
                 emailDisplay.textContent = 'Email not available';
+            }
+
+            try {
+                const statsRes = await fetch('/api/user-stats', {
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
+                if (statsRes.ok) {
+                    const stats = await statsRes.json();
+                    document.getElementById('quizzesCount').textContent = stats.quizzes_count;
+                    document.getElementById('totalPlays').textContent = stats.total_plays;
+                }
+            } catch (e) {
+                console.error('Failed to load stats:', e);
             }
 
             document.getElementById('doSendReset').onclick = async function() {
@@ -72,8 +301,7 @@
                 }
 
                 const btn = document.getElementById('doSendReset');
-                btn.disabled = true;
-                btn.innerText = 'Sending...';
+                setButtonLoading(btn, 'Sending...');
                 errorDiv.style.display = 'none';
                 successDiv.style.display = 'none';
 
@@ -85,8 +313,7 @@
                     errorDiv.innerText = err.message;
                     errorDiv.style.display = 'block';
                 } finally {
-                    btn.disabled = false;
-                    btn.innerText = 'Send Password Reset Email';
+                    resetButton(btn, 'Send Password Reset Email');
                 }
             };
 

@@ -3,46 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 36'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%234f46e5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M8 10C8 6 11 2 16 2C21 2 24 6 24 10C24 14 22 17 18 19L17 20V24' stroke='url(%23g)' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='17' cy='31' r='2.5' fill='url(%23g)'/%3E%3C/svg%3E">
     <title>Login - The Kriwils</title>
-    <link rel="stylesheet" href="css/style.css?v=1.6">
+    <link rel="stylesheet" href="css/style.css?v=2.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
 </head>
 <body>
-    <nav aria-label="Main navigation">
-        <a href="/create" class="nav-brand">The Kriwils</a>
-        <ul class="nav-links">
-            <!-- Dynamically populated by auth.js -->
-        </ul>
-    </nav>
-    <div class="login-container">
-        <div class="login-card">
-            <h2>Welcome Back</h2>
-            <p>Please enter your details to sign in</p>
-            <div id="errorMsg" class="message-error"></div>
-            <div id="resendMsg" class="message-success message-sm"></div>
-            <form id="loginForm">
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" placeholder="Enter your email" autocomplete="email">
+    <div class="auth-split-layout">
+        <div class="auth-splash">
+            <div class="splash-blob" aria-hidden="true"></div>
+            <div class="splash-blob" aria-hidden="true"></div>
+            <div class="splash-blob" aria-hidden="true"></div>
+            <svg class="splash-network" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <line x1="150" y1="140" x2="450" y2="245" />
+                <line x1="450" y1="245" x2="700" y2="175" />
+                <line x1="450" y1="245" x2="300" y2="420" />
+                <line x1="700" y1="175" x2="850" y2="350" />
+                <line x1="850" y1="350" x2="800" y2="455" />
+                <line x1="800" y1="455" x2="550" y2="525" />
+                <line x1="550" y1="525" x2="300" y2="420" />
+                <line x1="150" y1="140" x2="300" y2="420" />
+            </svg>
+            <div class="splash-node" aria-hidden="true"></div>
+            <div class="splash-node" aria-hidden="true"></div>
+            <div class="splash-node" aria-hidden="true"></div>
+            <div class="splash-node" aria-hidden="true"></div>
+            <div class="splash-node" aria-hidden="true"></div>
+            <div class="splash-node" aria-hidden="true"></div>
+            <div class="splash-node" aria-hidden="true"></div>
+            <div class="splash-signal" aria-hidden="true"></div>
+            <div class="splash-signal" aria-hidden="true"></div>
+            <div class="splash-particle" aria-hidden="true"></div>
+            <div class="splash-particle" aria-hidden="true"></div>
+            <div class="splash-particle" aria-hidden="true"></div>
+            <div class="splash-particle" aria-hidden="true"></div>
+            <div class="splash-particle" aria-hidden="true"></div>
+            <div class="splash-particle" aria-hidden="true"></div>
+            <div class="splash-particle" aria-hidden="true"></div>
+            <div class="splash-particle" aria-hidden="true"></div>
+            <div class="splash-particle" aria-hidden="true"></div>
+            <div class="splash-particle" aria-hidden="true"></div>
+            <div class="auth-splash-content">
+                <svg class="brand-logo-splash" viewBox="0 0 32 36" fill="none" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="logoGradA" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#818cf8"/>
+                            <stop offset="100%" stop-color="#a5b4fc"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M8 10C8 6 11 2 16 2C21 2 24 6 24 10C24 14 22 17 18 19L17 20V24"
+                          stroke="url(#logoGradA)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    <circle cx="17" cy="31" r="2.5" fill="url(#logoGradA)"/>
+                </svg>
+                <div class="auth-splash-brand">The Kriwils</div>
+                <div class="auth-splash-tagline">AI-Powered Quiz Platform</div>
+                <div class="auth-splash-subtitle">Sign in to access your dashboard</div>
             </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div class="password-wrapper">
-                    <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
-                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', this)">Show</button>
+            <div class="auth-splash-theme">
+                <button onclick="toggleTheme()" class="btn-theme" aria-label="Toggle theme"></button>
+            </div>
+        </div>
+        <div class="auth-form-side">
+            <div class="login-card">
+                <h1>Welcome Back</h1>
+                <p>Please enter your details to sign in</p>
+                <div id="errorMsg" class="message-error" role="alert"></div>
+                <div id="resendMsg" class="message-success message-sm" role="alert"></div>
+                <form id="loginForm" autocomplete="on">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="Enter your email" autocomplete="email" required>
                 </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', this)" aria-label="Show password" aria-pressed="false">Show</button>
+                    </div>
+                </div>
+                <button type="submit" id="doLogin">Sign In</button>
+                </form>
+                <p class="login-footer-link"><a href="/resetpassword">Forgot password?</a></p>
+                <p class="login-footer-link">Don't have an account? <a href="/register">Sign Up</a></p>
             </div>
-            <button type="submit" id="doLogin">Sign In</button>
-            </form>
-            <p class="login-footer-link"><a href="/resetpassword">Forgot password?</a></p>
-            <p class="login-footer-link">Don't have an account? <a href="/register">Sign Up</a></p>
         </div>
     </div>
 
-    <script src="js/auth.js?v=1.6"></script>
+    <script src="js/auth.js?v=2.0"></script>
     <script>
         const UNCONFIRMED_MSGS = ['email not confirmed', 'email not verified', 'unconfirmed', 'not confirmed'];
 
@@ -67,7 +117,7 @@
             }
 
             loginBtn.disabled = true;
-            loginBtn.innerText = "Signing In...";
+            setButtonLoading(loginBtn, 'Signing In...');
             errorDiv.style.display = "none";
 
             try {
@@ -101,8 +151,7 @@
                 errorDiv.innerText = err.message;
                 errorDiv.style.display = "block";
             } finally {
-                loginBtn.disabled = false;
-                loginBtn.innerText = "Sign In";
+                resetButton(loginBtn, 'Sign In');
             }
         };
     </script>

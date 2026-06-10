@@ -103,16 +103,6 @@ function setupDropZone() {
     }
 }
 
-function setButtonLoading(btn, text) {
-    btn.classList.add('btn-loading');
-    btn.textContent = text;
-}
-
-function resetButton(btn, text) {
-    btn.classList.remove('btn-loading');
-    btn.textContent = text;
-}
-
 function showStatusBar(state, title, code) {
     const resultsDiv = document.getElementById('quizResults');
     if (!resultsDiv) return;

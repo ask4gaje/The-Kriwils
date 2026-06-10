@@ -14,7 +14,7 @@ function showErrorUI(message) {
     loadingDiv.className = '';
     loadingDiv.innerHTML = `
         <div class="quiz-container error-container">
-            <div class="error-emoji">🤔</div>
+            <div class="error-emoji">?</div>
             <h2 class="error-heading">Oops! Quiz Not Found</h2>
             <p class="error-text">${escapeHtml(message)}</p>
             <button onclick="window.location.href='/join'" class="error-btn">Try Another Code</button>
@@ -145,7 +145,14 @@ function showQuestion() {
     question.options.forEach((opt, index) => {
         const btn = document.createElement('button');
         btn.className = 'option-btn';
-        btn.innerText = opt;
+        const letter = document.createElement('span');
+        letter.className = 'option-letter';
+        letter.innerText = String.fromCharCode(65 + index);
+        const text = document.createElement('span');
+        text.className = 'option-text';
+        text.innerText = opt;
+        btn.appendChild(letter);
+        btn.appendChild(text);
         btn.onclick = () => handleAnswer(index, btn);
         grid.appendChild(btn);
     });
@@ -190,7 +197,7 @@ function startTimer() {
     timeLeft = total;
     const bar = document.getElementById('timerBarFill');
     bar.style.width = '100%';
-    bar.style.background = 'var(--primary-color)';
+    bar.style.background = 'linear-gradient(90deg, var(--accent-teal) 0%, var(--primary-color) 100%)';
     const startTime = Date.now();
     timerInterval = setInterval(() => {
         const elapsed = (Date.now() - startTime) / 1000;
@@ -198,7 +205,7 @@ function startTimer() {
         const pct = (timeLeft / total) * 100;
         bar.style.width = `${pct}%`;
         if (timeLeft <= 5) {
-            bar.style.background = 'var(--danger-hover)';
+            bar.style.background = 'linear-gradient(90deg, var(--accent-coral) 0%, var(--danger-hover) 100%)';
         }
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
@@ -227,20 +234,25 @@ async function showResults() {
     
     let feedback = "";
     const percentage = (score / currentQuestions.length) * 100;
-    
-    if (percentage === 100) {
-        feedback = "Perfect! You're a genius! 🏆";
-        confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: ['#4f46e5', '#6366f1', '#10b981']
-        });
-    } else if (percentage >= 80) feedback = "Amazing job! 🌟";
-    else if (percentage >= 60) feedback = "Good effort! 👍";
-    else feedback = "Keep practicing! You'll get better. 💪";
-    
+
+    if (percentage === 100) feedback = "Perfect! You got them all right!";
+    else if (percentage >= 80) feedback = "Amazing job!";
+    else if (percentage >= 60) feedback = "Good effort!";
+    else feedback = "Keep practicing, you will get better.";
+
     document.getElementById('feedbackText').innerText = feedback;
+
+    // Celebrate high scores - scale intensity with the score, respect reduced-motion
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (percentage >= 70 && typeof confetti === 'function' && !prefersReducedMotion) {
+        const particleCount = Math.round(60 + (percentage / 100) * 140);
+        confetti({
+            particleCount,
+            spread: percentage === 100 ? 90 : 70,
+            origin: { y: 0.6 },
+            colors: ['#4f46e5', '#6366f1', '#14b8a6', '#fb6f6f', '#f59e0b']
+        });
+    }
 
     // Show Review button if enabled
     if (quizSettings.is_reviewable) {

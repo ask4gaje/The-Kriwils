@@ -43,7 +43,7 @@ async function loadMyQuizzes() {
         if (!quizzes || quizzes.length === 0) {
             listContainer.innerHTML = `
                 <div class="stats-empty quizzes-empty">
-                    <div class="stats-empty-emoji">🎓</div>
+                    <div class="stats-empty-emoji">*</div>
                     <p class="stats-empty-text">No quizzes yet, create your first one!</p>
                     <button onclick="window.location.href='/create'" class="empty-state-btn">Create your first quiz</button>
                 </div>
@@ -84,7 +84,7 @@ async function loadMyQuizzes() {
                 return `
                     <div class="quiz-card quiz-card-pending ${diffClass}" style="animation-delay: ${index * 0.1}s">
                         <div class="quiz-card-header">
-                            <div class="quiz-card-topic quiz-card-pending-topic">⏳ Generating: ${escapeHtml(quizTitle)}</div>
+                            <div class="quiz-card-topic quiz-card-pending-topic">Generating: ${escapeHtml(quizTitle)}</div>
                             <div class="quiz-card-meta">AI is writing your questions...</div>
                             <div class="spinner quiz-card-pending-spinner"></div>
                         </div>
@@ -186,10 +186,10 @@ async function openEditModal(quizId) {
                     <label>Time per Question</label>
                     <select id="editTimeLimit">
                         <option value="0" ${!quiz.time_limit_seconds ? 'selected' : ''}>No Limit</option>
-                        <option value="10" ${quiz.time_limit_seconds == 10 ? 'selected' : ''}>10 seconds</option>
-                        <option value="15" ${quiz.time_limit_seconds == 15 ? 'selected' : ''}>15 seconds</option>
-                        <option value="30" ${quiz.time_limit_seconds == 30 ? 'selected' : ''}>30 seconds</option>
-                        <option value="60" ${quiz.time_limit_seconds == 60 ? 'selected' : ''}>60 seconds</option>
+                        <option value="10" ${quiz.time_limit_seconds === 10 ? 'selected' : ''}>10 seconds</option>
+                        <option value="15" ${quiz.time_limit_seconds === 15 ? 'selected' : ''}>15 seconds</option>
+                        <option value="30" ${quiz.time_limit_seconds === 30 ? 'selected' : ''}>30 seconds</option>
+                        <option value="60" ${quiz.time_limit_seconds === 60 ? 'selected' : ''}>60 seconds</option>
                     </select>
                 </div>
             </div>
@@ -213,7 +213,7 @@ async function openEditModal(quizId) {
                 <div class="form-group">
                     <label>Correct Answer</label>
                     <select class="edit-answer">
-                        ${[0, 1, 2, 3].map(val => `<option value="${val}" ${q.answer == val ? 'selected' : ''}>Option ${val + 1}</option>`).join('')}
+                        ${[0, 1, 2, 3].map(val => `<option value="${val}" ${q.answer === val ? 'selected' : ''}>Option ${val + 1}</option>`).join('')}
                     </select>
                 </div>
                 <div class="form-group">
@@ -240,7 +240,7 @@ async function saveQuizEdits() {
     const updatedTitle = document.getElementById('editQuizTitle').value.trim();
     const updatedIsReplayable = document.getElementById('editIsReplayable').checked;
     const updatedIsReviewable = document.getElementById('editIsReviewable').checked;
-    const updatedTimeLimit = parseInt(document.getElementById('editTimeLimit').value) || 0;
+    const updatedTimeLimit = parseInt(document.getElementById('editTimeLimit').value, 10) || 0;
     const updatedQuestions = [];
 
     if (!updatedTitle) {
@@ -249,7 +249,7 @@ async function saveQuizEdits() {
     }
 
     saveBtn.disabled = true;
-    saveBtn.innerText = "Saving...";
+    setButtonLoading(saveBtn, 'Saving...');
 
     try {
         blocks.forEach(block => {
@@ -281,8 +281,7 @@ async function saveQuizEdits() {
         console.error('Error saving edits:', err);
         showToast(`Failed to save: ${err.message}`, 'error');
     } finally {
-        saveBtn.disabled = false;
-        saveBtn.innerText = "Save Changes";
+        resetButton(saveBtn, 'Save Changes');
     }
 }
 
@@ -368,7 +367,7 @@ async function showStats(quizId, topic, viewAll = false, page = 1) {
         if (!results || results.length === 0) {
             container.innerHTML = `
                 <div class="stats-empty">
-                    <div class="stats-empty-emoji">📊</div>
+                    <div class="stats-empty-emoji">-</div>
                     <p class="stats-empty-text">No one has played this quiz yet.</p>
                     <p class="stats-empty-subtext">Share the quiz code to get started!</p>
                 </div>
@@ -419,7 +418,7 @@ async function showStats(quizId, topic, viewAll = false, page = 1) {
         container.innerHTML = `
             <div class="stats-toolbar">
                 <button onclick="showStats('${quizId}', '${escapedTopic}', ${!viewAll}, 1)" class="btn-secondary stats-toggle-btn">
-                    ${viewAll ? '🏆 Show Leaderboard' : '📋 Show All Scores'}
+                    ${viewAll ? 'Show Leaderboard' : 'Show All Scores'}
                 </button>
             </div>
             ${summaryHtml}
@@ -602,10 +601,10 @@ function toggleView() {
     isListView = !isListView;
     if (isListView) {
         grid.classList.add('list-view');
-        btn.textContent = '⊞ Grid';
+        btn.textContent = 'Grid';
     } else {
         grid.classList.remove('list-view');
-        btn.textContent = '☰ List';
+        btn.textContent = 'List';
     }
 }
 
@@ -638,7 +637,7 @@ async function loadActivityFeed() {
             const quizTitle = quizMap[r.quiz_id] || 'a quiz';
             return `
                 <div class="activity-item">
-                    <span class="activity-icon">${pct >= 80 ? '🏆' : pct >= 50 ? '👍' : '📝'}</span>
+                    <span class="activity-icon">${pct >= 80 ? '*' : pct >= 50 ? '+' : '-'}</span>
                     <span class="activity-text"><strong>${escapeHtml(r.player_name)}</strong> scored ${pct}% on ${escapeHtml(quizTitle)}</span>
                     <span class="activity-time">${timeAgo(r.created_at)}</span>
                 </div>
