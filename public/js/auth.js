@@ -37,9 +37,6 @@ function renderAuthSplash(subtitle) {
             '<div class="auth-splash-brand">The Kriwils</div>' +
             '<div class="auth-splash-tagline">AI-Powered Quiz Platform</div>' +
             (subtitle ? '<div class="auth-splash-subtitle">' + escapeHtml(subtitle) + '</div>' : '') +
-        '</div>' +
-        '<div class="auth-splash-theme">' +
-            '<button onclick="toggleTheme()" class="btn-theme" aria-label="Toggle theme"></button>' +
         '</div>';
 }
 
@@ -240,9 +237,6 @@ async function renderNavigation() {
     const fullPath = window.location.pathname;
     const rawPage = fullPath.replace(/\/$/, '').split('/').pop() || 'join';
     const currentPage = rawPage.replace('.html', '').split('?')[0].split('#')[0];
-    const SUN = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-    const MOON = '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    const themeIcon = document.documentElement.dataset.theme === 'dark' ? MOON : SUN;
 
     if (session) {
         const displayName = session.user.user_metadata?.display_name || session.user.email || 'Account';
@@ -273,14 +267,12 @@ async function renderNavigation() {
                     <button onclick="logoutUser()" class="dropdown-logout">Logout</button>
                 </div>
             </li>
-            <li><button onclick="toggleTheme()" class="btn-theme" aria-label="Toggle theme">${themeIcon}</button></li>
         `;
     } else {
         navLinks.innerHTML = `
             <li><a href="/join" class="${currentPage === 'join' ? 'active' : ''}">Play</a></li>
             <li><a href="/about" class="${currentPage === 'about' ? 'active' : ''}">About</a></li>
             <li><a href="/login" class="btn-login">Login</a></li>
-            <li><button onclick="toggleTheme()" class="btn-theme" aria-label="Toggle theme">${themeIcon}</button></li>
         `;
     }
 }
@@ -296,32 +288,11 @@ document.addEventListener('click', (e) => {
     }
 });
 
-function toggleTheme() {
-    const current = document.documentElement.dataset.theme;
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next;
-    localStorage.setItem('theme', next);
-    const SUN = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-    const MOON = '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    const btn = document.querySelector('.btn-theme');
-    if (btn) btn.innerHTML = next === 'dark' ? MOON : SUN;
-}
-
-// Global protection and nav rendering
 document.addEventListener('DOMContentLoaded', async () => {
     const protectedPaths = ['create', 'quizzes', 'account'];
     const fullPath = window.location.pathname;
     const pathParts = fullPath.split('/').pop().replace('.html', '').split('?');
     const currentPath = pathParts[0];
-
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const theme = savedTheme || (prefersDark ? 'dark' : 'light');
-    document.documentElement.dataset.theme = theme;
-    const SUN = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-    const MOON = '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    const themeBtn = document.querySelector('.btn-theme');
-    if (themeBtn) themeBtn.innerHTML = theme === 'dark' ? MOON : SUN;
 
     await initSupabase();
 

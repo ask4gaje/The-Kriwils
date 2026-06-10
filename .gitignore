@@ -20,8 +20,6 @@ yarn-error.log*
 
 # Project Private Docs
 DEPLOYMENT.md
-GEMINI.md
-CODE_EXPLAINED.md
 .geminiignore
 
 # RPM packages

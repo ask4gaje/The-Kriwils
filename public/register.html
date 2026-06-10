@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -82,7 +82,7 @@
                         errorDiv.innerText = "An account with this email already exists. Check your inbox or reset your password.";
                         errorDiv.style.display = "block";
                     } else {
-                        successDiv.style.color = '#d97706';
+                        successDiv.className = 'message-warning';
                         successDiv.innerHTML = 'A confirmation email has been sent. '
                             + '<strong>You must verify your email before signing in.</strong>'
                             + '<br><a href="#" id="resendRegLink" class="inline-link">Resend confirmation email</a>';
@@ -101,7 +101,7 @@
                         };
                     }
                 } else {
-                        successDiv.style.color = '#059669';
+                        successDiv.className = 'message-success';
                         successDiv.innerText = "Account created! You can now log in.";
                         successDiv.style.display = "block";
                         setTimeout(() => {

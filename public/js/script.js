@@ -267,7 +267,8 @@ async function pollQuizStatus(quizId, title) {
     }
 }
 
-async function handleGenerateQuiz() {
+async function handleGenerateQuiz(event) {
+    event.preventDefault();
     const title = document.getElementById('quizTitle').value.trim();
     const topic = document.getElementById('quizTopic').value.trim();
     const difficulty = document.getElementById('quizDifficulty').value;
