@@ -107,7 +107,7 @@ async function loadMyQuizzes() {
                         <div class="quiz-card-topic">${escapeHtml(quizTitle)}</div>
                         <div class="quiz-card-meta">Topic: ${escapeHtml(quiz.topic)}</div>
                         ${quiz.short_code ? `<div class="quiz-card-meta">Code: ${escapeHtml(quiz.short_code)}</div>` : ''}
-                        <div class="quiz-card-meta">${quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)} • ${questionCount} Questions${quiz.time_limit_seconds ? ' • ' + quiz.time_limit_seconds + 's/q' : ''}</div>
+                        <div class="quiz-card-meta">${quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)} • ${questionCount} Questions</div>
                         ${createdTime ? `<div class="quiz-card-timestamp">Created ${createdTime}</div>` : ''}
                     </div>
                     <div class="quiz-card-actions">
@@ -182,16 +182,7 @@ async function openEditModal(quizId) {
                         <input type="checkbox" id="editIsReviewable" ${quiz.is_reviewable ? 'checked' : ''}> Allow students to review answers
                     </label>
                 </div>
-                <div class="form-group edit-margin-top">
-                    <label>Time per Question</label>
-                    <select id="editTimeLimit">
-                        <option value="0" ${!quiz.time_limit_seconds ? 'selected' : ''}>No Limit</option>
-                        <option value="10" ${quiz.time_limit_seconds === 10 ? 'selected' : ''}>10 seconds</option>
-                        <option value="15" ${quiz.time_limit_seconds === 15 ? 'selected' : ''}>15 seconds</option>
-                        <option value="30" ${quiz.time_limit_seconds === 30 ? 'selected' : ''}>30 seconds</option>
-                        <option value="60" ${quiz.time_limit_seconds === 60 ? 'selected' : ''}>60 seconds</option>
-                    </select>
-                </div>
+
             </div>
         `;
 
@@ -240,7 +231,7 @@ async function saveQuizEdits() {
     const updatedTitle = document.getElementById('editQuizTitle').value.trim();
     const updatedIsReplayable = document.getElementById('editIsReplayable').checked;
     const updatedIsReviewable = document.getElementById('editIsReviewable').checked;
-    const updatedTimeLimit = parseInt(document.getElementById('editTimeLimit').value, 10) || 0;
+
     const updatedQuestions = [];
 
     if (!updatedTitle) {
@@ -269,7 +260,7 @@ async function saveQuizEdits() {
             title: updatedTitle,
             is_replayable: updatedIsReplayable,
             is_reviewable: updatedIsReviewable,
-            time_limit_seconds: updatedTimeLimit || null,
+
             questions_json: updatedQuestions
         });
 

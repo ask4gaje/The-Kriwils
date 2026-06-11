@@ -159,7 +159,7 @@ function repopulateForm(quiz) {
     document.getElementById('quizTitle').value = quiz.title || '';
     document.getElementById('quizTopic').value = quiz.topic || '';
     document.getElementById('quizDifficulty').value = quiz.difficulty || 'medium';
-    document.getElementById('quizTimeLimit').value = quiz.time_limit_seconds || '0';
+
     document.getElementById('isReplayable').checked = quiz.is_replayable || false;
     document.getElementById('isReviewable').checked = quiz.is_reviewable !== false;
 }
@@ -175,7 +175,7 @@ function resetCreateForm() {
     document.getElementById('quizTopic').value = '';
     document.getElementById('quizDifficulty').value = 'medium';
     document.getElementById('quizCount').value = '5';
-    document.getElementById('quizTimeLimit').value = '0';
+
     document.getElementById('isReplayable').checked = false;
     document.getElementById('isReviewable').checked = true;
 
@@ -212,7 +212,7 @@ async function checkAndDisplayPendingQuiz() {
 
         const { data: pendingQuizzes, error } = await client
             .from('quizzes')
-            .select('id, title, topic, difficulty, time_limit_seconds, is_replayable, is_reviewable')
+            .select('id, title, topic, difficulty, is_replayable, is_reviewable')
             .eq('creator_id', session.user.id)
             .eq('status', 'pending');
 
@@ -322,7 +322,7 @@ async function handleGenerateQuiz(event) {
                 topic,
                 difficulty,
                 count,
-                timeLimit: parseInt(document.getElementById('quizTimeLimit').value, 10) || 0,
+
                 isReplayable,
                 isReviewable,
                 pdfContext

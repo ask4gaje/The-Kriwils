@@ -412,7 +412,7 @@ const server = http.createServer(async (req, res) => {
                 questions_json: [], 
                 is_replayable: body.isReplayable,
                 is_reviewable: body.isReviewable,
-                time_limit_seconds: body.timeLimit || null,
+
                 short_code: generateShortCode(),
                 status: 'pending'
             });
@@ -652,7 +652,6 @@ const server = http.createServer(async (req, res) => {
                 if (body.title !== undefined) allowed.title = body.title;
                 if (body.is_replayable !== undefined) allowed.is_replayable = body.is_replayable;
                 if (body.is_reviewable !== undefined) allowed.is_reviewable = body.is_reviewable;
-                if (body.time_limit_seconds !== undefined) allowed.time_limit_seconds = body.time_limit_seconds;
                 if (body.questions_json !== undefined) allowed.questions_json = body.questions_json;
                 const updateResult = await supabaseAdmin('PATCH', `quizzes?id=eq.${quizId}`, allowed);
                 if (updateResult.status >= 400) throw new Error(updateResult.data?.message || 'Update failed');

@@ -6,8 +6,12 @@ let playerName = "";
 let currentQuizId = "";
 let userAnswers = []; // Tracks selected option index for each question
 let quizSettings = { is_replayable: true, is_reviewable: true };
-let timeLeft = 0;
-let timerInterval = null;
+
+function triggerAnimation(el, className) {
+    el.classList.remove(className);
+    void el.offsetWidth;
+    el.classList.add(className);
+}
 
 function showErrorUI(message) {
     const loadingDiv = document.getElementById('loading');
@@ -20,6 +24,10 @@ function showErrorUI(message) {
             <button onclick="window.location.href='/join'" class="error-btn">Try Another Code</button>
         </div>
     `;
+    requestAnimationFrame(() => {
+        const container = loadingDiv.querySelector('.error-container');
+        if (container) container.classList.add('animate-in');
+    });
 }
 
 async function loadQuiz() {
@@ -57,15 +65,16 @@ async function loadQuiz() {
         // Store settings and questions
         quizSettings = { 
             is_replayable: data.is_replayable ?? true, 
-            is_reviewable: data.is_reviewable ?? true,
-            time_limit_seconds: data.time_limit_seconds || 0
+            is_reviewable: data.is_reviewable ?? true
         };
         currentQuestions = data.questions_json;
 
         // 1. Replay Check
         if (quizSettings.is_replayable === false && localStorage.getItem('played_' + currentQuizId)) {
             document.getElementById('loading').style.display = 'none';
-            document.getElementById('alreadyPlayed').style.display = 'block';
+            const alreadyPlayedEl = document.getElementById('alreadyPlayed');
+            alreadyPlayedEl.style.display = 'block';
+            triggerAnimation(alreadyPlayedEl, 'animate-in');
             return;
         }
 
@@ -74,6 +83,7 @@ async function loadQuiz() {
         if (titleDisplay) {
             titleDisplay.innerText = data.title || data.topic;
             titleDisplay.style.display = 'block';
+            triggerAnimation(titleDisplay, 'animate-slide-down');
         }
 
         document.getElementById('loading').style.display = 'none';
@@ -90,7 +100,9 @@ async function loadQuiz() {
             `;
         }
 
-        document.getElementById('namePrompt').style.display = 'block';
+        const namePromptEl = document.getElementById('namePrompt');
+        namePromptEl.style.display = 'block';
+        triggerAnimation(namePromptEl, 'animate-in');
     } catch (err) {
         console.error("Error loading quiz:", err);
         const displayMsg = (err.message === "Quiz not found" || err.code === "PGRST116") 
@@ -120,24 +132,25 @@ function startQuiz() {
     localStorage.setItem('playerName_' + currentQuizId, playerName);
 
     document.getElementById('namePrompt').style.display = 'none';
-    document.getElementById('quizApp').style.display = 'block';
-    if (quizSettings.time_limit_seconds) {
-        document.getElementById('timerDisplay').style.display = 'block';
-        startTimer();
-    }
+    const quizApp = document.getElementById('quizApp');
+    quizApp.style.display = 'block';
+    triggerAnimation(quizApp, 'animate-in');
     showQuestion();
 }
 
 function showQuestion() {
     isAnswered = false;
-    clearInterval(timerInterval);
     const question = currentQuestions[currentIndex];
 
     const progress = ((currentIndex) / currentQuestions.length) * 100;
     document.getElementById('progressFill').style.width = `${progress}%`;
-    document.getElementById('questionCounter').innerText = `Question ${currentIndex + 1} of ${currentQuestions.length}`;
+    const counterEl = document.getElementById('questionCounter');
+    counterEl.innerText = `Question ${currentIndex + 1} of ${currentQuestions.length}`;
+    triggerAnimation(counterEl, 'animate-counter-pop');
 
-    document.getElementById('questionText').innerText = question.question;
+    const questionText = document.getElementById('questionText');
+    questionText.innerText = question.question;
+    triggerAnimation(questionText, 'animate-text-in');
 
     const grid = document.getElementById('optionsGrid');
     grid.innerHTML = '';
@@ -145,6 +158,7 @@ function showQuestion() {
     question.options.forEach((opt, index) => {
         const btn = document.createElement('button');
         btn.className = 'option-btn';
+        btn.style.animationDelay = `${0.08 + index * 0.06}s`;
         const letter = document.createElement('span');
         letter.className = 'option-letter';
         letter.innerText = String.fromCharCode(65 + index);
@@ -157,15 +171,16 @@ function showQuestion() {
         grid.appendChild(btn);
     });
 
-    if (quizSettings.time_limit_seconds) {
-        startTimer();
-    }
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.option-btn').forEach(btn => {
+            btn.classList.add('animate-in');
+        });
+    });
 }
 
 function handleAnswer(selectedIndex, btn) {
     if (isAnswered) return;
     isAnswered = true;
-    clearInterval(timerInterval);
 
     userAnswers[currentIndex] = selectedIndex;
 
@@ -174,13 +189,18 @@ function handleAnswer(selectedIndex, btn) {
 
     if (selectedIndex === correctIndex) {
         score++;
-        btn.classList.add('correct', 'animate-correct');
+        btn.classList.add('correct');
+        btn.style.animation = 'pulseSuccess 0.4s ease';
     } else {
-        btn.classList.add('wrong', 'animate-wrong');
+        btn.classList.add('wrong');
+        btn.style.animation = 'shakeError 0.4s ease';
         allButtons[correctIndex].classList.add('correct');
     }
 
-    setTimeout(() => advanceQuestion(), 1500);
+    setTimeout(() => {
+        btn.style.animation = '';
+        advanceQuestion();
+    }, 1500);
 }
 
 function advanceQuestion() {
@@ -192,43 +212,11 @@ function advanceQuestion() {
     }
 }
 
-function startTimer() {
-    const total = quizSettings.time_limit_seconds;
-    timeLeft = total;
-    const bar = document.getElementById('timerBarFill');
-    bar.style.width = '100%';
-    bar.style.background = 'linear-gradient(90deg, var(--accent-teal) 0%, var(--primary-color) 100%)';
-    const startTime = Date.now();
-    timerInterval = setInterval(() => {
-        const elapsed = (Date.now() - startTime) / 1000;
-        timeLeft = Math.max(0, total - elapsed);
-        const pct = (timeLeft / total) * 100;
-        bar.style.width = `${pct}%`;
-        if (timeLeft <= 5) {
-            bar.style.background = 'linear-gradient(90deg, var(--accent-coral) 0%, var(--danger-hover) 100%)';
-        }
-        if (timeLeft <= 0) {
-            clearInterval(timerInterval);
-            handleTimeout();
-        }
-    }, 50);
-}
-
-function handleTimeout() {
-    if (isAnswered) return;
-    isAnswered = true;
-    userAnswers[currentIndex] = -1;
-
-    const correctIndex = currentQuestions[currentIndex].answer;
-    const allButtons = document.querySelectorAll('.option-btn');
-    allButtons[correctIndex].classList.add('correct');
-
-    setTimeout(() => advanceQuestion(), 1500);
-}
-
 async function showResults() {
     document.getElementById('quizApp').style.display = 'none';
-    document.getElementById('resultsArea').style.display = 'block';
+    const resultsArea = document.getElementById('resultsArea');
+    resultsArea.style.display = 'block';
+    triggerAnimation(resultsArea, 'animate-in');
     
     document.getElementById('finalScore').innerText = `${score}/${currentQuestions.length}`;
     
@@ -290,7 +278,9 @@ async function showResults() {
 
 function showReview() {
     document.getElementById('resultsArea').style.display = 'none';
-    document.getElementById('reviewArea').style.display = 'block';
+    const reviewArea = document.getElementById('reviewArea');
+    reviewArea.style.display = 'block';
+    triggerAnimation(reviewArea, 'animate-in');
     
     const list = document.getElementById('reviewList');
     list.innerHTML = currentQuestions.map((q, index) => {
@@ -312,13 +302,22 @@ function showReview() {
             </div>
         `;
     }).join('');
+
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.review-item').forEach((item, i) => {
+            item.style.animationDelay = `${0.07 + i * 0.05}s`;
+            item.classList.add('animate-in');
+        });
+    });
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function hideReview() {
     document.getElementById('reviewArea').style.display = 'none';
-    document.getElementById('resultsArea').style.display = 'block';
+    const resultsArea = document.getElementById('resultsArea');
+    resultsArea.style.display = 'block';
+    triggerAnimation(resultsArea, 'animate-in');
 }
 
 // Start

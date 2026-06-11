@@ -1643,6 +1643,10 @@ nav button:hover {
 }
 
 @keyframes fadeInSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1670,6 +1674,60 @@ nav button:hover {
     50% { transform: translateX(8px); }
     75% { transform: translateX(-4px); }
 }
+
+@keyframes slideDownFade {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(-24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes counterPop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.15); }
+    70% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+/* Animation Utility Classes */
+.animate-fade-slide-up {
+    animation: fadeInSlideUp 0.5s ease forwards;
+}
+
+.animate-slide-down {
+    animation: slideDownFade 0.5s ease forwards;
+}
+
+.animate-counter-pop {
+    animation: counterPop 0.35s var(--ease-bounce);
+}
+
+/* Staggered child animations */
+.animate-stagger > * {
+    opacity: 0;
+    animation: fadeInSlideUp 0.4s ease forwards;
+}
+.animate-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.animate-stagger > *:nth-child(2) { animation-delay: 0.12s; }
+.animate-stagger > *:nth-child(3) { animation-delay: 0.19s; }
+.animate-stagger > *:nth-child(4) { animation-delay: 0.26s; }
+.animate-stagger > *:nth-child(5) { animation-delay: 0.33s; }
+.animate-stagger > *:nth-child(6) { animation-delay: 0.40s; }
 
 /* Utilities */
 .loading-wrapper {
@@ -2048,6 +2106,11 @@ nav button:hover {
     font-size: var(--text-lg);
 }
 
+/* Quiz page has a more translucent overlay to show animated background */
+.quiz-page .page-layout > main {
+    background: rgba(15, 23, 42, 0.58);
+}
+
 .quiz-page .quiz-container {
     background: var(--card-bg);
     padding: var(--space-4xl);
@@ -2296,6 +2359,62 @@ body.body-hidden {
 .already-played-text {
     text-align: center;
     margin-bottom: var(--space-3xl);
+}
+
+/* Quiz entrance animations */
+.quiz-page #namePrompt.quiz-container {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.quiz-page #namePrompt.quiz-container.animate-in {
+    animation: fadeInSlideUp 0.5s ease forwards;
+}
+
+.quiz-page #quizApp.quiz-container {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.quiz-page #quizApp.quiz-container.animate-in {
+    animation: fadeInSlideUp 0.5s ease forwards;
+}
+
+.quiz-page #resultsArea.quiz-container {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.quiz-page #resultsArea.quiz-container.animate-in {
+    animation: fadeInSlideUp 0.5s ease forwards;
+}
+
+.quiz-page #alreadyPlayed.quiz-container.animate-in {
+    animation: fadeInSlideUp 0.5s ease forwards;
+}
+
+.quiz-page #reviewArea.quiz-container.animate-in {
+    animation: fadeInSlideUp 0.5s ease forwards;
+}
+
+/* Question text transition */
+.quiz-page .question-text.animate-text-in {
+    animation: fadeInSlideUp 0.35s ease forwards;
+}
+
+/* Option button staggered entrance */
+.quiz-page .option-btn.animate-in {
+    animation: slideInRight 0.35s ease forwards;
+}
+
+/* Review item staggered entrance */
+.quiz-page .review-item {
+    opacity: 0;
+    transform: translateY(16px);
+}
+
+.quiz-page .review-item.animate-in {
+    animation: fadeInSlideUp 0.4s ease forwards;
 }
 
 .account-section-heading {

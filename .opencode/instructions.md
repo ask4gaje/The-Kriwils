@@ -95,7 +95,7 @@ Types: feat, fix, sec, style, chore, docs
 - `:focus-visible` ring on ALL interactive elements
 - `@media (prefers-reduced-motion)` MUST wrap all animations and transitions
 - WCAG AA contrast ≥ 4.5:1 everywhere
-- `aria-label` on `<nav>`, `aria-live` on dynamic regions (toasts, timer, questions)
+- `aria-label` on `<nav>`, `aria-live` on dynamic regions (toasts, questions)
 
 ### FORBIDDEN
 - NO inline `style="..."` attributes in HTML
