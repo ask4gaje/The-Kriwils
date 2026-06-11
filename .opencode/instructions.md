@@ -106,6 +106,7 @@ Types: feat, fix, sec, style, chore, docs
 - NO emojis in UI text, markup, or code strings
 - NO em dashes (—) in text. Use period or other punctuation.
 - NO em-dash in anything
+- NO cache busters (`?v=N`) in asset URLs — never bump or add version query params
 
 ### Breakpoints
 - `@media (max-width: 768px)` — tablet adjustments
