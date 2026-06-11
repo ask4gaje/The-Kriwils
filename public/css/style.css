@@ -1243,13 +1243,16 @@ nav button:hover {
     border-radius: var(--radius-xl);
     border: 1px solid var(--border-color);
     transition: transform 0.22s var(--ease-bounce), box-shadow 0.22s var(--ease-pop), border-color 0.22s var(--ease-pop);
-    position: relative;
+    display: grid;
+    grid-template-areas:
+        "header actions"
+        "footer footer";
+    grid-template-columns: 1fr auto;
+    align-items: start;
 }
 
 .card-top-actions {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
+    grid-area: actions;
     display: flex;
     gap: 0.5rem;
 }
@@ -1302,6 +1305,7 @@ nav button:hover {
 }
 
 .quiz-card-header {
+    grid-area: header;
     margin-bottom: 1rem;
 }
 
@@ -1317,6 +1321,7 @@ nav button:hover {
 }
 
 .quiz-card-actions {
+    grid-area: footer;
     display: flex;
     gap: 0.5rem;
     margin-top: 1.25rem;
@@ -2043,8 +2048,6 @@ nav button:hover {
     font-size: var(--text-lg);
 }
 
-/* Timer Bar Styles */
-
 .quiz-page .quiz-container {
     background: var(--card-bg);
     padding: var(--space-4xl);
@@ -2177,20 +2180,6 @@ nav button:hover {
     100% { transform: scale(1); opacity: 1; }
 }
 
-.timer-bar {
-    height: 0.6rem;
-    background: var(--border-color);
-    border-radius: 999px;
-    overflow: hidden;
-}
-#timerBarFill {
-    height: 100%;
-    width: 100%;
-    background: linear-gradient(90deg, var(--accent-teal) 0%, var(--primary-color) 100%);
-    transition: background 0.4s ease, width 1s linear;
-    border-radius: 999px;
-}
-
 @media (max-width: 640px) {
     h1 {
         font-size: var(--text-3xl);
@@ -2233,10 +2222,6 @@ body.body-hidden {
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin-bottom: var(--space-md);
-}
-
-.timer-display {
-    margin-bottom: var(--space-lg);
 }
 
 .name-prompt-heading {
@@ -2556,10 +2541,6 @@ body.body-hidden {
 
 .quizzes-grid.list-view .quiz-card-header {
     margin-bottom: 0;
-}
-
-.quizzes-grid.list-view .card-top-actions {
-    position: static;
 }
 
 .quizzes-grid.list-view .quiz-card-actions {
