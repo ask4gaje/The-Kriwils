@@ -7,6 +7,29 @@ let currentQuizId = "";
 let userAnswers = []; // Tracks selected option index for each question
 let quizSettings = { is_replayable: true, is_reviewable: true };
 
+function triggerAnimation(el, className) {
+    el.classList.remove(className);
+    void el.offsetWidth;
+    el.classList.add(className);
+}
+
+function showErrorUI(message) {
+    const loadingDiv = document.getElementById('loading');
+    loadingDiv.className = '';
+    loadingDiv.innerHTML = `
+        <div class="quiz-container error-container">
+            <div class="error-emoji">?</div>
+            <h2 class="error-heading">Oops! Quiz Not Found</h2>
+            <p class="error-text">${escapeHtml(message)}</p>
+            <button onclick="window.location.href='/join'" class="error-btn">Try Another Code</button>
+        </div>
+    `;
+    requestAnimationFrame(() => {
+        const container = loadingDiv.querySelector('.error-container');
+        if (container) container.classList.add('animate-in');
+    });
+}
+
 async function loadQuiz() {
     const urlParams = new URLSearchParams(window.location.search);
     const pathParts = window.location.pathname.split('/');
@@ -15,12 +38,15 @@ async function loadQuiz() {
     currentQuizId = urlParams.get('quiz');
 
     if (!currentQuizId && !shortCode) {
-        document.getElementById('loading').innerHTML = '<p style="color: #dc2626;">No quiz ID or code provided!</p>';
+        showErrorUI("No quiz ID or code provided. Please enter a valid 6-digit code.");
         return;
     }
 
     try {
-        let query = supabaseClient.from('quizzes').select('*');
+        const client = await getSupabase();
+        if (!client) throw new Error("Database connection failed");
+
+        let query = client.from('quizzes').select('*');
         
         if (shortCode) {
             query = query.eq('short_code', shortCode);
@@ -39,14 +65,16 @@ async function loadQuiz() {
         // Store settings and questions
         quizSettings = { 
             is_replayable: data.is_replayable ?? true, 
-            is_reviewable: data.is_reviewable ?? true 
+            is_reviewable: data.is_reviewable ?? true
         };
         currentQuestions = data.questions_json;
 
         // 1. Replay Check
         if (quizSettings.is_replayable === false && localStorage.getItem('played_' + currentQuizId)) {
             document.getElementById('loading').style.display = 'none';
-            document.getElementById('alreadyPlayed').style.display = 'block';
+            const alreadyPlayedEl = document.getElementById('alreadyPlayed');
+            alreadyPlayedEl.style.display = 'block';
+            triggerAnimation(alreadyPlayedEl, 'animate-in');
             return;
         }
 
@@ -55,6 +83,7 @@ async function loadQuiz() {
         if (titleDisplay) {
             titleDisplay.innerText = data.title || data.topic;
             titleDisplay.style.display = 'block';
+            triggerAnimation(titleDisplay, 'animate-slide-down');
         }
 
         document.getElementById('loading').style.display = 'none';
@@ -64,17 +93,22 @@ async function loadQuiz() {
         if (savedName) {
             playerName = savedName;
             document.getElementById('namePrompt').innerHTML = `
-                <h2 style="margin-bottom: 1rem;">Selamat Datang Kembali, ${playerName}!</h2>
-                <p style="margin-bottom: 2rem;">Siap untuk mencoba lagi dan meningkatkan skor Anda?</p>
+                <h2 class="name-prompt-welcome-heading">Selamat Datang Kembali, ${escapeHtml(playerName)}!</h2>
+                <p class="name-prompt-welcome-text">Siap untuk mencoba lagi dan meningkatkan skor Anda?</p>
                 <button onclick="startQuiz()">Mulai Kuis</button>
-                <p style="margin-top: 1.5rem; font-size: 0.8125rem; color: var(--text-muted); cursor: pointer; text-decoration: underline;" onclick="clearSavedName()">Bukan Anda? Ganti Nama</p>
+                <p class="name-prompt-switch" onclick="clearSavedName()">Bukan Anda? Ganti Nama</p>
             `;
         }
 
-        document.getElementById('namePrompt').style.display = 'block';
+        const namePromptEl = document.getElementById('namePrompt');
+        namePromptEl.style.display = 'block';
+        triggerAnimation(namePromptEl, 'animate-in');
     } catch (err) {
         console.error("Error loading quiz:", err);
-        document.getElementById('loading').innerHTML = `<p style="color: #dc2626;">Error: ${err.message}</p>`;
+        const displayMsg = (err.message === "Quiz not found" || err.code === "PGRST116") 
+            ? "The 6-character code you entered is invalid or the quiz has been deleted." 
+            : err.message;
+        showErrorUI(displayMsg);
     }
 }
 
@@ -98,32 +132,49 @@ function startQuiz() {
     localStorage.setItem('playerName_' + currentQuizId, playerName);
 
     document.getElementById('namePrompt').style.display = 'none';
-    document.getElementById('quizApp').style.display = 'block';
+    const quizApp = document.getElementById('quizApp');
+    quizApp.style.display = 'block';
+    triggerAnimation(quizApp, 'animate-in');
     showQuestion();
 }
 
 function showQuestion() {
     isAnswered = false;
     const question = currentQuestions[currentIndex];
-    
-    // Update progress
+
     const progress = ((currentIndex) / currentQuestions.length) * 100;
     document.getElementById('progressFill').style.width = `${progress}%`;
-    document.getElementById('questionCounter').innerText = `Question ${currentIndex + 1} of ${currentQuestions.length}`;
+    const counterEl = document.getElementById('questionCounter');
+    counterEl.innerText = `Question ${currentIndex + 1} of ${currentQuestions.length}`;
+    triggerAnimation(counterEl, 'animate-counter-pop');
 
-    // Set text
-    document.getElementById('questionText').innerText = question.question;
-    
-    // Clear and fill options
+    const questionText = document.getElementById('questionText');
+    questionText.innerText = question.question;
+    triggerAnimation(questionText, 'animate-text-in');
+
     const grid = document.getElementById('optionsGrid');
     grid.innerHTML = '';
-    
+
     question.options.forEach((opt, index) => {
         const btn = document.createElement('button');
         btn.className = 'option-btn';
-        btn.innerText = opt;
+        btn.style.animationDelay = `${0.08 + index * 0.06}s`;
+        const letter = document.createElement('span');
+        letter.className = 'option-letter';
+        letter.innerText = String.fromCharCode(65 + index);
+        const text = document.createElement('span');
+        text.className = 'option-text';
+        text.innerText = opt;
+        btn.appendChild(letter);
+        btn.appendChild(text);
         btn.onclick = () => handleAnswer(index, btn);
         grid.appendChild(btn);
+    });
+
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.option-btn').forEach(btn => {
+            btn.classList.add('animate-in');
+        });
     });
 }
 
@@ -131,7 +182,6 @@ function handleAnswer(selectedIndex, btn) {
     if (isAnswered) return;
     isAnswered = true;
 
-    // Track user answer
     userAnswers[currentIndex] = selectedIndex;
 
     const correctIndex = currentQuestions[currentIndex].answer;
@@ -139,44 +189,58 @@ function handleAnswer(selectedIndex, btn) {
 
     if (selectedIndex === correctIndex) {
         score++;
-        btn.classList.add('correct', 'animate-correct');
+        btn.classList.add('correct');
+        btn.style.animation = 'pulseSuccess 0.4s ease';
     } else {
-        btn.classList.add('wrong', 'animate-wrong');
+        btn.classList.add('wrong');
+        btn.style.animation = 'shakeError 0.4s ease';
         allButtons[correctIndex].classList.add('correct');
     }
 
     setTimeout(() => {
-        currentIndex++;
-        if (currentIndex < currentQuestions.length) {
-            showQuestion();
-        } else {
-            showResults();
-        }
+        btn.style.animation = '';
+        advanceQuestion();
     }, 1500);
+}
+
+function advanceQuestion() {
+    currentIndex++;
+    if (currentIndex < currentQuestions.length) {
+        showQuestion();
+    } else {
+        showResults();
+    }
 }
 
 async function showResults() {
     document.getElementById('quizApp').style.display = 'none';
-    document.getElementById('resultsArea').style.display = 'block';
+    const resultsArea = document.getElementById('resultsArea');
+    resultsArea.style.display = 'block';
+    triggerAnimation(resultsArea, 'animate-in');
     
     document.getElementById('finalScore').innerText = `${score}/${currentQuestions.length}`;
     
     let feedback = "";
     const percentage = (score / currentQuestions.length) * 100;
-    
-    if (percentage === 100) {
-        feedback = "Perfect! You're a genius! 🏆";
-        confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: ['#4f46e5', '#6366f1', '#10b981']
-        });
-    } else if (percentage >= 80) feedback = "Amazing job! 🌟";
-    else if (percentage >= 60) feedback = "Good effort! 👍";
-    else feedback = "Keep practicing! You'll get better. 💪";
-    
+
+    if (percentage === 100) feedback = "Perfect! You got them all right!";
+    else if (percentage >= 80) feedback = "Amazing job!";
+    else if (percentage >= 60) feedback = "Good effort!";
+    else feedback = "Keep practicing, you will get better.";
+
     document.getElementById('feedbackText').innerText = feedback;
+
+    // Celebrate high scores - scale intensity with the score, respect reduced-motion
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (percentage >= 70 && typeof confetti === 'function' && !prefersReducedMotion) {
+        const particleCount = Math.round(60 + (percentage / 100) * 140);
+        confetti({
+            particleCount,
+            spread: percentage === 100 ? 90 : 70,
+            origin: { y: 0.6 },
+            colors: ['#4f46e5', '#6366f1', '#14b8a6', '#fb6f6f', '#f59e0b']
+        });
+    }
 
     // Show Review button if enabled
     if (quizSettings.is_reviewable) {
@@ -190,47 +254,23 @@ async function showResults() {
 
     // Save Replay status to local storage
     localStorage.setItem('played_' + currentQuizId, 'true');
+    localStorage.setItem('highlightPlayer_' + currentQuizId, playerName);
 
-    // Save Score to Database (High Score Only)
+    // Save Score via server
     try {
-        // 1. Check for existing score
-        const { data: existing, error: fetchError } = await supabaseClient
-            .from('quiz_results')
-            .select('id, score')
-            .eq('quiz_id', currentQuizId)
-            .eq('player_name', playerName)
-            .maybeSingle();
-
-        if (fetchError) throw fetchError;
-
-        if (existing) {
-            // 2. Update if higher
-            if (score > existing.score) {
-                const { error: updateError } = await supabaseClient
-                    .from('quiz_results')
-                    .update({ 
-                        score: score,
-                        created_at: new Date().toISOString() // Update timestamp to newest high score
-                    })
-                    .eq('id', existing.id);
-                if (updateError) throw updateError;
-                console.log("High score updated!");
-            } else {
-                console.log("Existing score is higher or equal. Not updating.");
-            }
-        } else {
-            // 3. New record
-            const { error: insertError } = await supabaseClient
-                .from('quiz_results')
-                .insert({
-                    quiz_id: currentQuizId,
-                    player_name: playerName,
-                    score: score,
-                    total_questions: currentQuestions.length
-                });
-            if (insertError) throw insertError;
-            console.log("Score saved successfully!");
-        }
+        const response = await fetch('/api/submit-score', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                quiz_id: currentQuizId,
+                player_name: playerName,
+                score: score,
+                total_questions: currentQuestions.length
+            })
+        });
+        const result = await response.json();
+        if (!response.ok) console.warn('Score save:', result.error || result.message);
+        else console.log(result.message);
     } catch (err) {
         console.error("Error saving score:", err);
     }
@@ -238,7 +278,9 @@ async function showResults() {
 
 function showReview() {
     document.getElementById('resultsArea').style.display = 'none';
-    document.getElementById('reviewArea').style.display = 'block';
+    const reviewArea = document.getElementById('reviewArea');
+    reviewArea.style.display = 'block';
+    triggerAnimation(reviewArea, 'animate-in');
     
     const list = document.getElementById('reviewList');
     list.innerHTML = currentQuestions.map((q, index) => {
@@ -249,24 +291,33 @@ function showReview() {
 
         return `
             <div class="review-item">
-                <div class="review-q">${index + 1}. ${q.question}</div>
+                <div class="review-q">${index + 1}. ${escapeHtml(q.question)}</div>
                 <div class="review-answer-box ${isCorrect ? 'correct' : 'wrong'}">
-                    <strong>Your Answer:</strong> ${userAnsText} 
-                    ${!isCorrect ? `<br><strong>Correct Answer:</strong> ${correctAnsText}` : ''}
+                    <strong>Your Answer:</strong> ${escapeHtml(userAnsText)} 
+                    ${!isCorrect ? `<br><strong>Correct Answer:</strong> ${escapeHtml(correctAnsText)}` : ''}
                 </div>
                 <div class="review-explanation">
-                    <strong>Explanation:</strong> ${q.explanation || 'No explanation available.'}
+                    <strong>Explanation:</strong> ${escapeHtml(q.explanation || 'No explanation available.')}
                 </div>
             </div>
         `;
     }).join('');
+
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.review-item').forEach((item, i) => {
+            item.style.animationDelay = `${0.07 + i * 0.05}s`;
+            item.classList.add('animate-in');
+        });
+    });
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function hideReview() {
     document.getElementById('reviewArea').style.display = 'none';
-    document.getElementById('resultsArea').style.display = 'block';
+    const resultsArea = document.getElementById('resultsArea');
+    resultsArea.style.display = 'block';
+    triggerAnimation(resultsArea, 'animate-in');
 }
 
 // Start

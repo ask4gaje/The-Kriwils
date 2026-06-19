@@ -1,67 +1,121 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 36'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%234f46e5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M8 10C8 6 11 2 16 2C21 2 24 6 24 10C24 14 22 17 18 19L17 20V24' stroke='url(%23g)' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='17' cy='31' r='2.5' fill='url(%23g)'/%3E%3C/svg%3E">
     <title>Register - The Kriwils</title>
-    <link rel="stylesheet" href="css/style.css?v=1.1">
+    <link rel="stylesheet" href="css/style.css?v=2.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-card">
-            <h2>Create Account</h2>
-            <p>Join The Kriwils today</p>
-            <div id="errorMsg" style="color: #dc2626; font-size: 0.875rem; margin-bottom: 1rem; text-align: center; display: none;"></div>
-            <div class="form-group">
-                <label for="regUsername">Username</label>
-                <input type="text" id="regUsername" placeholder="Choose a username">
+    <div class="auth-split-layout">
+        <div class="auth-splash"></div>
+        <div class="auth-form-side">
+            <div class="login-card">
+                <h1>Create Account</h1>
+                <p>Join The Kriwils today</p>
+                <div id="errorMsg" class="message-error" role="alert"></div>
+                <div id="successMsg" class="message-success" role="alert"></div>
+                <div id="resendMsg" class="message-success message-sm" role="alert"></div>
+                <form id="registerForm" autocomplete="on">
+                <div class="form-group">
+                    <label for="regEmail">Email</label>
+                    <input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="regDisplayName">Display Name</label>
+                    <input type="text" id="regDisplayName" placeholder="How others will see you" autocomplete="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Password</label>
+                    <input type="password" id="regPassword" placeholder="Create a password" autocomplete="new-password" required>
+                </div>
+                <button type="submit" id="doRegister">Sign Up</button>
+                </form>
+                <p class="login-footer-link">Already have an account? <a href="/login">Login</a></p>
             </div>
-            <div class="form-group">
-                <label for="regPassword">Password</label>
-                <input type="password" id="regPassword" placeholder="••••••••">
-            </div>
-            <button id="doRegister">Sign Up</button>
-            <p style="margin-top: 1.5rem; font-size: 0.875rem;">Already have an account? <a href="login.html" style="color: var(--primary-color); text-decoration: none;">Sign In</a></p>
         </div>
     </div>
 
-    <script src="js/auth.js"></script>
+    <script src="js/auth.js?v=2.0"></script>
     <script>
-        document.getElementById('doRegister').onclick = async function() {
-            console.log('Sign Up button clicked');
-            const usn = document.getElementById('regUsername').value;
-            const pwd = document.getElementById('regPassword').value;
-            const errorDiv = document.getElementById('errorMsg');
+        renderAuthSplash('Create your account to get started');
 
-            if (!usn || !pwd) {
-                errorDiv.innerText = "Please fill in all fields.";
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            document.getElementById('doRegister').click();
+        });
+
+        document.getElementById('doRegister').onclick = async function() {
+            const email = document.getElementById('regEmail').value.trim();
+            const displayName = document.getElementById('regDisplayName').value.trim();
+            const pwd = document.getElementById('regPassword').value.trim();
+            const errorDiv = document.getElementById('errorMsg');
+            const successDiv = document.getElementById('successMsg');
+            const resendMsg = document.getElementById('resendMsg');
+            const regBtn = document.getElementById('doRegister');
+
+            if (!email || !displayName || !pwd) {
+                errorDiv.innerText = "All fields are required.";
                 errorDiv.style.display = "block";
                 return;
             }
 
+            regBtn.disabled = true;
+            setButtonLoading(regBtn, 'Creating Account...');
+            errorDiv.style.display = "none";
+            successDiv.style.display = "none";
+            resendMsg.style.display = "none";
+
             try {
-                const { data, error } = await registerUser(usn, pwd);
+                const { data, error } = await registerUser(email, pwd, displayName);
                 if (error) {
-                    console.error('Supabase error:', error);
-                    errorDiv.innerText = error.message;
+                    errorDiv.innerText = humanizeError(error);
                     errorDiv.style.display = "block";
+                } else if (!data.session && data.user) {
+                    const isNew = Date.now() - new Date(data.user.created_at).getTime() < 10000;
+                    if (!isNew) {
+                        errorDiv.innerText = "An account with this email already exists. Check your inbox or reset your password.";
+                        errorDiv.style.display = "block";
+                    } else {
+                        successDiv.className = 'message-warning';
+                        successDiv.innerHTML = 'A confirmation email has been sent. '
+                            + '<strong>You must verify your email before signing in.</strong>'
+                            + '<br><a href="#" id="resendRegLink" class="inline-link">Resend confirmation email</a>';
+                        successDiv.style.display = "block";
+                        regBtn.style.display = "none";
+                        document.getElementById('resendRegLink').onclick = async function(e) {
+                            e.preventDefault();
+                            try {
+                                await resendConfirmationEmail(email);
+                                resendMsg.innerText = "Confirmation email resent! Check your inbox.";
+                                resendMsg.style.display = "block";
+                            } catch (resendErr) {
+                                resendMsg.innerText = humanizeError(resendErr);
+                                resendMsg.style.display = "block";
+                            }
+                        };
+                    }
                 } else {
-                    console.log('User registered:', data);
-                    showToast("Registration successful! You can now log in.", 'success');
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
-                }
+                        successDiv.className = 'message-success';
+                        successDiv.innerText = "Account created! You can now log in.";
+                        successDiv.style.display = "block";
+                        setTimeout(() => {
+                            window.location.href = '/login';
+                        }, 2000);
+                    }
             } catch (err) {
-                console.error('Client-side error:', err);
-                errorDiv.innerText = "An unexpected error occurred. Check the console.";
+                errorDiv.innerText = humanizeError(err);
                 errorDiv.style.display = "block";
+            } finally {
+                resetButton(regBtn, 'Sign Up');
             }
         };
     </script>
+<script src="js/splash-constellations.js"></script>
 </body>
 </html>

@@ -1,13 +1,10 @@
 const MAX_TOPIC_LENGTH = 150;
+let isGenerating = false;
 
-// PDF.js worker setup
 if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 }
 
-/**
- * Extracts text from a PDF file using PDF.js (Max 50 pages)
- */
 async function extractTextFromPDF(file) {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -26,60 +23,252 @@ async function extractTextFromPDF(file) {
     return fullText;
 }
 
-// Enforce topic length limit on load
-document.addEventListener('DOMContentLoaded', () => {
-    const topicInput = document.getElementById('quizTopic');
-    if (topicInput) topicInput.maxLength = MAX_TOPIC_LENGTH;
-});
+async function getPageCount(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    return pdf.numPages;
+}
 
-/**
- * Calls Gemini API via a secure server-side proxy.
- * This prevents the API Key from being exposed to the browser.
- */
-async function askGeminiWithRetry(prompt, retries = 3, delay = 2000) {
-    const models = ['gemini-2.0-flash', 'gemini-flash-latest']; 
-    
-    for (const model of models) {
-        console.log(`Attempting generation with model: ${model} via proxy`);
-        for (let i = 0; i < retries; i++) {
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function setupDropZone() {
+    const dropZone = document.getElementById('pdfDropZone');
+    const fileInput = document.getElementById('pdfUpload');
+    const dropContent = document.getElementById('dropZoneContent');
+    const dropFile = document.getElementById('dropZoneFile');
+    const dzFileName = document.getElementById('dzFileName');
+    const dzFileSize = document.getElementById('dzFileSize');
+    const dzRemove = document.getElementById('dzRemove');
+
+    if (!dropZone || !fileInput) return;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            updateDropZoneFile(fileInput.files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length) {
+            updateDropZoneFile(fileInput.files[0]);
+        } else {
+            resetDropZone();
+        }
+    });
+
+    dzRemove.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileInput.value = '';
+        resetDropZone();
+    });
+
+    async function updateDropZoneFile(file) {
+        dzFileName.textContent = file.name;
+        dzFileSize.textContent = formatFileSize(file.size);
+
+        if (typeof pdfjsLib !== 'undefined') {
             try {
-                const response = await fetch('/api/generate-quiz', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt, model })
-                });
-
-                const data = await response.json();
-
-                // Handle 503 Service Unavailable or "high demand" errors
-                if (response.status === 503 || (data.error && data.error.code === 503) || (data.error && data.error.message && data.error.message.includes("high demand"))) {
-                    console.warn(`Model ${model} is busy (Attempt ${i + 1}/${retries}). Retrying in ${delay}ms...`);
-                    await new Promise(res => setTimeout(res, delay));
-                    delay *= 2; 
-                    continue;
-                }
-
-                if (!response.ok || data.error) {
-                    throw new Error(data.error ? (data.error.message || data.error) : `HTTP error! status: ${response.status}`);
-                }
-
-                return data;
-            } catch (err) {
-                if (i === retries - 1 && model === models[models.length - 1]) throw err;
-                console.error(`Attempt ${i + 1} for ${model} failed:`, err.message);
+                const pages = await getPageCount(file);
+                dzFileSize.textContent = formatFileSize(file.size) + ' / ' + pages + ' pages';
+            } catch (e) {
+                // ignore page count errors
             }
         }
+
+        dropContent.classList.add('hidden');
+        dropFile.classList.remove('hidden');
+    }
+
+    function resetDropZone() {
+        dropContent.classList.remove('hidden');
+        dropFile.classList.add('hidden');
     }
 }
 
-/**
- * Generates a random 6-character short code for Pretty URLs.
- */
-function generateShortCode() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
+function showStatusBar(state, title, code) {
+    const resultsDiv = document.getElementById('quizResults');
+    if (!resultsDiv) return;
+
+    resultsDiv.style.display = 'block';
+
+    if (state === 'loading') {
+        resultsDiv.innerHTML = `
+            <div class="generator-status generator-status--visible generator-status--loading">
+                <span class="generator-status-text">Generating questions for "${escapeHtml(title)}"...</span>
+            </div>`;
+    } else if (state === 'pending') {
+        resultsDiv.innerHTML = `
+            <div class="generator-status generator-status--visible generator-status--pending">
+                <div class="spinner generator-status-spinner"></div>
+                <span class="generator-status-text">Building "${escapeHtml(title)}"...</span>
+            </div>`;
+    } else if (state === 'complete') {
+        const shareLink = `${window.location.origin}/play/${code}`;
+        resultsDiv.innerHTML = `
+            <div class="generator-status generator-status--visible generator-status--complete">
+                <span class="generator-status-text">Ready! Code: <span class="generator-status-code">${escapeHtml(code)}</span></span>
+                <div class="generator-status-actions">
+                    <button onclick="copyToClipboard('${shareLink}')">Copy Link</button>
+                    <a href="${shareLink}" target="_blank"><button class="btn-secondary">Open Quiz</button></a>
+                </div>
+                <button class="generator-status-reset" id="resetCreateBtn">Create another quiz?</button>
+            </div>`;
+        document.getElementById('resetCreateBtn').addEventListener('click', resetCreateForm);
+    } else if (state === 'error') {
+        resultsDiv.innerHTML = `
+            <div class="generator-status generator-status--visible generator-status--error">
+                <span class="generator-status-text">Failed to generate quiz. Please try again.</span>
+            </div>`;
+    }
+
+    setTimeout(() => {
+        const statusEl = resultsDiv.querySelector('.generator-status');
+        if (statusEl) {
+            statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 50);
 }
 
-document.getElementById('generateBtn').onclick = async function() {
+function hideStatusBar() {
+    const resultsDiv = document.getElementById('quizResults');
+    if (resultsDiv) {
+        resultsDiv.innerHTML = '';
+        resultsDiv.style.display = '';
+    }
+}
+
+function repopulateForm(quiz) {
+    document.getElementById('quizTitle').value = quiz.title || '';
+    document.getElementById('quizTopic').value = quiz.topic || '';
+    document.getElementById('quizDifficulty').value = quiz.difficulty || 'medium';
+
+    document.getElementById('isReplayable').checked = quiz.is_replayable || false;
+    document.getElementById('isReviewable').checked = quiz.is_reviewable !== false;
+}
+
+function resetCreateForm() {
+    hideStatusBar();
+    isGenerating = false;
+
+    const generateBtn = document.getElementById('generateBtn');
+    if (generateBtn) resetButton(generateBtn, 'Generate Quiz');
+
+    document.getElementById('quizTitle').value = '';
+    document.getElementById('quizTopic').value = '';
+    document.getElementById('quizDifficulty').value = 'medium';
+    document.getElementById('quizCount').value = '5';
+
+    document.getElementById('isReplayable').checked = false;
+    document.getElementById('isReviewable').checked = true;
+
+    const fileInput = document.getElementById('pdfUpload');
+    if (fileInput) {
+        fileInput.value = '';
+        const dzContent = document.getElementById('dropZoneContent');
+        const dzFile = document.getElementById('dropZoneFile');
+        if (dzContent) dzContent.classList.remove('hidden');
+        if (dzFile) dzFile.classList.add('hidden');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const topicInput = document.getElementById('quizTopic');
+    if (topicInput) topicInput.maxLength = MAX_TOPIC_LENGTH;
+
+    setupDropZone();
+
+    const generateBtn = document.getElementById('generateBtn');
+    if (generateBtn) {
+        generateBtn.onclick = handleGenerateQuiz;
+        await checkAndDisplayPendingQuiz();
+    }
+});
+
+async function checkAndDisplayPendingQuiz() {
+    try {
+        const session = await checkSession();
+        if (!session) return;
+
+        const client = await getSupabase();
+        if (!client) return;
+
+        const { data: pendingQuizzes, error } = await client
+            .from('quizzes')
+            .select('id, title, topic, difficulty, is_replayable, is_reviewable')
+            .eq('creator_id', session.user.id)
+            .eq('status', 'pending');
+
+        if (error) throw error;
+
+        if (pendingQuizzes && pendingQuizzes.length > 0) {
+            const pendingQuiz = pendingQuizzes[0];
+            const title = pendingQuiz.title || pendingQuiz.topic || "Your Quiz";
+
+            repopulateForm(pendingQuiz);
+            setButtonLoading(document.getElementById('generateBtn'), 'Generation in Progress...');
+            showStatusBar('pending', title);
+            setTimeout(() => pollQuizStatus(pendingQuiz.id, title), 3000);
+        }
+    } catch (e) {
+        console.error("Error checking pending quiz:", e);
+    }
+}
+
+async function pollQuizStatus(quizId, title) {
+    try {
+        const client = await getSupabase();
+        if (!client) return;
+
+        const { data: quiz, error } = await client
+            .from('quizzes')
+            .select('status, short_code')
+            .eq('id', quizId)
+            .single();
+
+        if (error) throw error;
+
+        if (quiz.status === 'completed') {
+            isGenerating = false;
+
+            const generateBtn = document.getElementById('generateBtn');
+            if (generateBtn) {
+                resetButton(generateBtn, 'Generate Quiz');
+            }
+
+            showStatusBar('complete', title, quiz.short_code);
+        } else if (quiz.status === 'failed' || !quiz) {
+            throw new Error("Quiz failed or deleted");
+        } else {
+            setTimeout(() => pollQuizStatus(quizId, title), 3000);
+        }
+    } catch (err) {
+        console.error("Polling error (might be deleted):", err);
+        const generateBtn = document.getElementById('generateBtn');
+        if (generateBtn) resetButton(generateBtn, 'Generate Quiz');
+        showStatusBar('error');
+    }
+}
+
+async function handleGenerateQuiz(event) {
+    event.preventDefault();
     const title = document.getElementById('quizTitle').value.trim();
     const topic = document.getElementById('quizTopic').value.trim();
     const difficulty = document.getElementById('quizDifficulty').value;
@@ -87,7 +276,6 @@ document.getElementById('generateBtn').onclick = async function() {
     const isReplayable = document.getElementById('isReplayable').checked;
     const isReviewable = document.getElementById('isReviewable').checked;
     const pdfFile = document.getElementById('pdfUpload').files[0];
-    const resultsDiv = document.getElementById('quizResults');
     const generateBtn = document.getElementById('generateBtn');
 
     if (pdfFile && typeof pdfjsLib === 'undefined') {
@@ -105,120 +293,60 @@ document.getElementById('generateBtn').onclick = async function() {
         return;
     }
 
-    // UI Feedback
-    generateBtn.disabled = true;
-    generateBtn.innerText = "Generating Quiz...";
-    resultsDiv.style.display = "block";
-    resultsDiv.innerHTML = `
-        <div class="loading-wrapper">
-            <div class="spinner"></div>
-            <p id="loadingStatus">AI is crafting your questions for <strong>${title}</strong>...</p>
-            <small>This may take a minute if using a PDF.</small>
-        </div>
-    `;
+    const session = await checkSession();
+    if (!session) {
+        showToast("Please login first!", 'error');
+        return;
+    }
+
+    isGenerating = true;
+    setButtonLoading(generateBtn, 'Generating questions...');
+    showStatusBar('loading', title);
 
     try {
         let pdfContext = "";
         if (pdfFile) {
-            document.getElementById('loadingStatus').innerText = "Reading your PDF file...";
+            setButtonLoading(generateBtn, 'Reading PDF...');
             pdfContext = await extractTextFromPDF(pdfFile);
-            document.getElementById('loadingStatus').innerHTML = `AI is reading <strong>${pdfFile.name}</strong>...`;
+            setButtonLoading(generateBtn, 'Generating questions...');
         }
 
-        // 1. Prepare Prompt
-        let prompt = `Generate a quiz about "${topic}" with ${difficulty} difficulty. 
-        Return strictly a JSON array of ${count} objects. 
-        All content (questions, options, explanations) MUST be in Indonesian language.
-        Each object must have: "question", "options" (array of 4 strings), and "answer" (index of correct option 0-3), and "explanation" (a brief explanation in Indonesian of why the answer is correct).
-        Example: [{"question": "Apa itu 1+1?", "options": ["1", "2", "3", "4"], "answer": 1, "explanation": "1 tambah 1 adalah 2."}]`;
+        const response = await fetch('/api/enqueue-quiz', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+                title,
+                topic,
+                difficulty,
+                count,
 
-        if (pdfContext) {
-            prompt = `Berikut adalah materi referensi (PDF Content):
-            ---
-            ${pdfContext.substring(0, 15000)} 
-            ---
-            Berdasarkan materi referensi di atas, buatlah kuis tentang "${topic || 'materi tersebut'}" dengan tingkat kesulitan ${difficulty}. 
-            Kembalikan kuis dalam format JSON array yang terdiri dari ${count} objek.
-            PENTING: Seluruh pertanyaan, pilihan jawaban, dan penjelasan HARUS dalam Bahasa Indonesia.
-            Format objek: {"question": "...", "options": ["...", "...", "...", "..."], "answer": index, "explanation": "..."}`;
-        }
-
-        // 2. Call Gemini API with Retry
-        const data = await askGeminiWithRetry(prompt);
-
-        if (!data.candidates || data.candidates.length === 0) {
-            throw new Error("AI failed to generate a response. Please try a different topic.");
-        }
-
-        let text = data.candidates[0].content.parts[0].text;
-        
-        // Robust JSON extraction (finds the first '[' and last ']')
-        const start = text.indexOf('[');
-        const end = text.lastIndexOf(']');
-        if (start === -1 || end === -1) {
-            throw new Error("AI returned an invalid data format. Please try again.");
-        }
-
-        const questions = JSON.parse(text.substring(start, end + 1));
-
-        // 3. Save to Supabase
-        const session = await checkSession();
-        if (!session) {
-            showToast("Session expired. Please log in again.", 'error');
-            window.location.href = 'login.html';
-            return;
-        }
-
-        const { data: quizRecord, error } = await supabaseClient
-            .from('quizzes')
-            .insert({
-                creator_id: session.user.id,
-                title: title,
-                topic: topic,
-                difficulty: difficulty,
-                questions_json: questions,
-                is_replayable: isReplayable,
-                is_reviewable: isReviewable,
-                short_code: generateShortCode()
+                isReplayable,
+                isReviewable,
+                pdfContext
             })
-            .select()
-            .single();
+        });
 
-        if (error) throw error;
+        const data = await response.json();
 
-        // 4. Display Success & Link
-        const shareLink = `${window.location.origin}/play/${quizRecord.short_code}`;
-        resultsDiv.innerHTML = `
-            <div style="background: #ecfdf5; padding: 2rem; border-radius: 1rem; border: 1px solid #10b981; margin-top: 2rem; text-align: center;">
-                <h3 style="color: #065f46; margin-bottom: 0.5rem;">✨ Quiz Generated Successfully!</h3>
-                <p style="font-size: 0.875rem; color: #065f46; margin-bottom: 1.5rem;">Your quiz <strong>${title}</strong> is ready.</p>
-                
-                <div style="background: white; padding: 1.5rem; border-radius: 0.75rem; border: 2px dashed #10b981; margin-bottom: 1.5rem; display: inline-block; min-width: 200px;">
-                    <p style="font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;">Quiz Code</p>
-                    <div style="font-size: 2.5rem; font-weight: 800; color: #059669; font-family: 'Courier New', Courier, monospace; letter-spacing: 0.2rem;">
-                        ${quizRecord.short_code}
-                    </div>
-                </div>
+        if (!response.ok) {
+            throw new Error(data.error || 'Server Error');
+        }
 
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                    <button onclick="copyToClipboard('${shareLink}')" style="width: auto; padding: 0.75rem 1.5rem; background: #10b981; color: white; border-radius: 0.5rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.2s;">
-                        Copy Share Link
-                    </button>
-                    <a href="${shareLink}" target="_blank" style="color: #047857; font-weight: 600; font-size: 0.95rem; text-decoration: underline;">
-                        Instant Play Link →
-                    </a>
-                </div>
-            </div>
-        `;
+        showStatusBar('pending', title);
+        setTimeout(() => pollQuizStatus(data.quizId, title), 3000);
 
     } catch (err) {
-        console.error('Final Generation Error:', err);
-        resultsDiv.innerHTML = `<p style="color: #dc2626; text-align:center;">Failed after multiple retries: ${err.message}. Please wait a minute and try again.</p>`;
-    } finally {
-        generateBtn.disabled = false;
-        generateBtn.innerText = "Generate Quiz";
+        console.error('Generation Error:', err);
+        showToast(err.message, 'error');
+        showStatusBar('error');
+
+        isGenerating = false;
+        resetButton(generateBtn, 'Generate Quiz');
     }
-};
+}
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
